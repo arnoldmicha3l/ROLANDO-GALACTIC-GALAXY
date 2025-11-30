@@ -707,7 +707,7 @@ void Game::playPVC() {
             cout << "You win Round " << round << "!\n\n";
             playerWins++;
         } else if (!player.isAlive() && computer.isAlive()) {
-            cout << "Computer wins Round " << round << "!\n\n";
+            cout << "Computer wins this Round " << round << "!\n\n";
             computerWins++;
         }
 
