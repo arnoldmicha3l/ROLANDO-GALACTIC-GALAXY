@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 #ifndef GAME_H
 #define GAME_H
 
@@ -51,7 +50,6 @@ private:
 };
 
 #endif // GAME_H
-=======
 #ifndef GAME_H
 #define GAME_H
 
@@ -87,4 +85,3 @@ private:
 };
 
 #endif // GAME_H
->>>>>>> 7dafc3db74f679e99d72f5f7bbf926b64896dba3
