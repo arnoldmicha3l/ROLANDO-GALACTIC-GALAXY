@@ -1,0 +1,22 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build-galactica",
+            "type": "shell",
+            "command": "g++",
+            "args": [
+                "-std=c++17",
+                "main.cpp",
+                "Game.cpp",
+                "Character.cpp",
+                "-o",
+                "main.exe"
+            ],
+            "group": "build",
+            "problemMatcher": [
+                "$gcc"
+            ]
+        }
+    ]
+}
