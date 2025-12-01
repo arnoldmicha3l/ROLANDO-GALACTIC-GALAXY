@@ -1,39 +1,65 @@
 #ifndef GAME_H
 #define GAME_H
+
 #include "Character.h"
 #include <vector>
+#include <string>
 #include <random>
-using namespace std;
 
+enum class GameMode {
+    PVP,
+    PVC
+};
 
-enum class GameMode { PVP, PVC };
+struct MatchResult {
+    std::string mode;
+    std::string p1_char;
+    std::string p2_char;
+    std::string winner_name;
+    std::string score;
+    long long timestamp; // Time in milliseconds
+
+    std::string getTimeString() const; // Implemented in Game.cpp
+};
 
 class Game {
-public:
-Game();
-void run();
-void clearScreen();
-bool confirmExit();
-
 private:
-vector<Character> roster;
-std::mt19937 rng;
+    std::vector<Character> roster;
+    std::vector<MatchResult> history;
+    std::mt19937 rng; // Random number generator engine
 
-void initRoster();
-void showIntro();
-void mainMenu();
-void playPVP();
-void playPVC();
-void viewAllCharacters();
-void displayCharacterDetails(int index);
-void showCredits();
-Character chooseCharacter(int playerNumber, bool showGrudges, int forbiddenIndex);
-int chooseSkill(const Character &ch);
-int getRandomInt(int min, int max);
-int computeDamage(Character &attacker, Character &defender, const Skill &skill);
-bool handleLowHP(Character &ch, int playerNumber, GameMode mode, bool isHuman);
-void printCharacterCard(const Character &ch, int index);
+    // Utility Functions
+    void clearScreen();
+    void showIntro();
+    bool confirmExit();
+    void initRoster();
+    void printCharacterCard(const Character &ch, int index);
+    
+    // Character Selection / Utility
+    Character chooseCharacter(int playerNumber, bool showGrudges, int forbiddenIndex);
+    int getRandomInt(int min, int max);
+    
+    // Combat Functions
+    int chooseSkill(const Character &ch);
+    int computeDamage(Character &attacker, Character &defender, const Skill &skill);
+    bool handleLowHP(Character &ch, int playerNumber, GameMode mode, bool isHuman);
+    
+    // Menu Functions
+    void viewAllCharacters();
+    void displayCharacterDetails(int index);
+    void showCredits();
 
+    // History Functions
+    void saveMatchHistory();
+    void loadMatchHistory(); // Added for completeness
+
+public:
+    Game();
+    void run();
+    void mainMenu();
+    void playPVP();
+    void playPVC();
+    void viewMatchHistory();
 };
 
 #endif // GAME_H
