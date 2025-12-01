@@ -1,29 +1,35 @@
 {
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(gdb) Launch Game",
+            "name": "C/C++: Launch Rolando Game (gdb)",
             "type": "cppdbg",
             "request": "launch",
-            // Path to the executable created by tasks.json
-            "program": "${workspaceFolder}/main.exe", 
+            "program": "${workspaceFolder}/main.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
-            "externalConsole": true, // Opens a separate console window for program I/O
+            "externalConsole": true, // Recommended for console applications that need input
             "MIMode": "gdb",
-            // Make sure this path is correct for your MinGW installation
-            "miDebuggerPath": "C:\\mingw64\\bin\\gdb.exe", 
+            "miDebuggerPath": "C:\\mingw64\\bin\\gdb.exe", // Path to your gdb debugger
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",
                     "text": "-enable-pretty-printing",
                     "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
                 }
             ],
-            // IMPORTANT: Runs your custom multi-file build task first
-            "preLaunchTask": "C/C++: g++.exe build all cpp with C++11" 
+            // This links the debugger to the build task defined in tasks.json
+            "preLaunchTask": "C/C++: g++.exe build all cpp with C++11"
         }
     ]
 }
