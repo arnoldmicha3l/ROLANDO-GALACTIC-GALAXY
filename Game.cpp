@@ -2,6 +2,8 @@
 #ifdef _WIN32
 #include "Game.h"
 #include <iostream>
+#include <thread>   // For sleep
+#include <chrono>   // For milliseconds
 #include <cstdlib>
 #include <limits>
 #include <cctype>
@@ -75,7 +77,9 @@ void Game::mainMenu() {
         cout << "================ MAIN MENU ================\n";
         cout << "  1. Player vs Player\n";
         cout << "  2. Player vs Computer\n";
-        cout << "  3. Exit Game\n";
+        cout << "  3. View All Characters\n";
+        cout << "  4. Credits\n";
+        cout << "  5. Exit Game\n";
         cout << "===========================================\n";
         cout << "Enter choice: ";
 
@@ -93,7 +97,11 @@ void Game::mainMenu() {
             playPVP();
         } else if (choice == 2) {
             playPVC();
-        } else if (choice == 3) {
+        } else if (choice == 3) {             
+            viewAllCharacters();
+        } else if (choice == 4) {             
+            showCredits();
+        } else if (choice == 5) {
             if (confirmExit()) {
                 clearScreen();
                 cout << "Exiting Galactica Campus Brawl...\n";
@@ -721,4 +729,94 @@ void Game::playPVC() {
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
     cin.get();
     clearScreen();
+}
+
+
+void Game::viewAllCharacters() {
+    while (true) {
+        clearScreen();
+        cout << "===== VIEW ALL CHARACTERS =====\n\n";
+
+        for (size_t i = 0; i < roster.size(); i++) {
+            cout << (i + 1) << ". " << roster[i].getName() << "\n";
+        }
+
+        cout << (roster.size() + 1) << ". Back\n\n";
+
+        cout << "Choose a character to view: ";
+        int choice;
+        cin >> choice;
+
+        if (cin.fail()) {
+            cin.clear();
+            cin.ignore(9999, '\n');
+            continue;
+        }
+
+        if (choice == roster.size() + 1) {
+            clearScreen(); // <-- Add this to clear the menu before exiting
+            return;
+        }
+
+        if (choice >= 1 && choice <= (int)roster.size()) {
+            displayCharacterDetails(choice - 1);
+        }
+    }
+}
+
+
+void Game::displayCharacterDetails(int index) {
+    clearScreen();
+
+    Character &c = roster[index];  // Use reference to avoid copying
+
+    cout << "=========================================\n"; 
+    cout << "            CHARACTER PROFILE            \n"; 
+    cout << "=========================================\n\n";
+    cout << "Name : " << c.getName() << "\n";
+    cout << "Title: " << c.getTitle() << "\n";
+    cout << "HP   : " << c.getHP() << " / " << c.getMaxHP() << "\n";
+    cout << "Mana : " << c.getMana() << " / " << c.getMaxMana() << "\n";
+    cout << "Base Damage     : " << c.getBaseDamage() << "\n";
+    cout << "Passive Ability : " << c.getPassiveDesc() << "\n";
+    cout << "Bio             : " << c.getBio() << "\n";
+    cout << "Grudges         : " << c.getGrudge() << "\n\n";
+
+    cout << "Press Enter to go back...";
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    cin.get();
+}
+void Game::showCredits() {
+    clearScreen();
+
+    string credits[] = {
+        "================ CREDITS ================",
+        "Game Design     : Your Name",
+        "Programming     : Your Name",
+        "Artwork         : Your Name / ASCII Art Credits",
+        "Story & Lore    : Your Name",
+        "Special Thanks  : Friends / Mentors / Inspiration",
+        "========================================",
+        "",
+        "Thank you for playing Galactica Campus Brawl!",
+        "Hope you enjoyed your adventure!",
+        "",
+        "Press Enter to go back..."
+    };
+
+    int totalLines = sizeof(credits) / sizeof(credits[0]);
+
+    // Scroll effect
+    for (int i = 0; i < totalLines + 10; i++) { // +10 adds blank lines at the end
+        clearScreen();
+        int start = max(0, i - 10); // Show last 10 lines
+        for (int j = start; j <= i && j < totalLines; j++) {
+            cout << credits[j] << "\n";
+        }
+        this_thread::sleep_for(chrono::milliseconds(400)); // Adjust speed here
+    }
+
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    cin.get();
+    clearScreen(); // Return to main menu cleanly
 }
