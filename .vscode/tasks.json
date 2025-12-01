@@ -11,9 +11,13 @@
                 "Game.cpp",
                 "Character.cpp",
                 "-o",
-                "main.exe"
+                "main.exe",
+                "-lwinmm"
             ],
-            "group": "build",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
             "problemMatcher": [
                 "$gcc"
             ]

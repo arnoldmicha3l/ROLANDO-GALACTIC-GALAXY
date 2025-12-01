@@ -1,12 +1,15 @@
+// Game.cpp
 #include "Game.h"
 #include <iostream>
 #include <limits>
 #include <cctype>
 
 #ifdef _WIN32
-#include <windows.h>
+    #include <windows.h>
+    #include <mmsystem.h>
+    #pragma comment(lib, "winmm.lib")   // for MSVC; with MinGW you still need -lwinmm when linking
 #else
-#include <unistd.h>     // for usleep on non-Windows
+    #include <unistd.h>     // for usleep on non-Windows
 #endif
 
 using namespace std;
@@ -23,7 +26,6 @@ void Game::clearScreen() {
 #else
     cout << "\033[2J\033[1;1H";
 #endif
-    
 }
 
 void Game::typeText(const string &text, int delayMs) {
@@ -44,6 +46,12 @@ void Game::run() {
 }
 
 void Game::showIntro() {
+#ifdef _WIN32
+    // Play music.wav in the background, looped
+    // Make sure music.wav is in the same folder as main.exe
+    PlaySound(TEXT("music.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
+#endif
+
     typeText("==================================================\n", 2);
     typeText("          ROLANDO GALACTIC GRAVEYARD             \n", 2);
     typeText("==================================================\n\n", 2);
@@ -107,6 +115,10 @@ void Game::mainMenu() {
             playPVC();
         } else if (choice == 3) {
             if (confirmExit()) {
+#ifdef _WIN32
+                // stop background music on exit
+                PlaySound(NULL, 0, 0);
+#endif
                 clearScreen();
                 cout << "Exiting Galactica Campus Brawl...\n";
                 cout << "See you next orbit, cadet.\n\n";
@@ -138,7 +150,6 @@ void Game::initRoster() {
     arnold.addSkill({"Heart Shot", "A focused blast of pure charm.", 10, false});
     arnold.addSkill({"Romantic Shield", "Protects his heart and softens incoming blows.", 12, false});
     arnold.addSkill({"Starlit Serenade", "A cosmic love song that hits harder in the dark of space.", 18, false});
-    // one-hit delete, no mana
     arnold.addSkill({"Love Delete", "A forbidden letter that deletes the enemy from his story.", 0, true});
 
     // Kyle
@@ -286,7 +297,6 @@ Character Game::chooseCharacter(int playerNumber,
             cout << "  " << chosen.getGrudge() << "\n\n";
         }
 
-        // Skill damage preview (shown once after selecting)
         cout << "  Skills & Damage Preview:\n\n";
         const vector<Skill> &skills = chosen.getSkills();
         int minDmg = chosen.getBaseDamage() - 3;
@@ -360,13 +370,12 @@ int Game::chooseSkill(const Character &ch) {
 int Game::computeDamage(Character &attacker,
                         Character &defender,
                         const Skill &skill) {
-    // One-hit delete: no mana requirement
     if (skill.isOneHitDelete) {
         cout << "*** ONE-HIT DELETE ACTIVATED! ***\n";
         cout << "  " << attacker.getName()
              << " uses " << skill.name
              << " to erase the opponent in a single strike.\n\n";
-        return defender.getHP(); // take all HP
+        return defender.getHP();
     }
 
     int base = attacker.getBaseDamage();
@@ -377,7 +386,6 @@ int Game::computeDamage(Character &attacker,
          << " + random " << randomBonus
          << " = " << damage << " before passives.\n";
 
-    // Passives
     if (attacker.getName() == "Arnold") {
         if (getRandomInt(1, 100) <= 25) {
             cout << "  Passive triggered: Romantic Aura! Extra 5 damage.\n";
@@ -408,9 +416,7 @@ int Game::computeDamage(Character &attacker,
         }
     }
 
-    if (damage < 0) {
-        damage = 0;
-    }
+    if (damage < 0) damage = 0;
 
     cout << "  Final damage after passives: " << damage << "\n\n";
     return damage;
@@ -420,10 +426,10 @@ bool Game::handleLowHP(Character &ch,
                        int playerNumber,
                        GameMode mode,
                        bool isHuman) {
-    (void)mode; // reserved for future
+    (void)mode;
 
     if (!isHuman) {
-        return true; // Computer never surrenders
+        return true;
     }
 
     if (ch.getHP() <= 15 && ch.getHP() > 0) {
@@ -456,7 +462,6 @@ void Game::playPVP() {
 
     Character p1 = chooseCharacter(1, true, -1);
 
-    // find index of player 1 char
     int forbiddenIndex = -1;
     for (size_t i = 0; i < roster.size(); ++i) {
         if (roster[i].getName() == p1.getName() &&
@@ -494,7 +499,6 @@ void Game::playPVP() {
                  << "  HP: " << p2.getHP()
                  << "  Mana: " << p2.getMana() << "\n\n";
 
-            // Player 1 turn
             if (!handleLowHP(p1, 1, GameMode::PVP, true)) {
                 p2Wins++;
                 roundOver = true;
@@ -527,7 +531,6 @@ void Game::playPVP() {
                 break;
             }
 
-            // Player 2 turn
             if (!handleLowHP(p2, 2, GameMode::PVP, true)) {
                 p1Wins++;
                 roundOver = true;
@@ -597,7 +600,6 @@ void Game::playPVC() {
 
     cout << "============= PLAYER VS COMPUTER =============\n\n";
 
-    // Bios only, no grudges in PVC
     Character player = chooseCharacter(1, false, -1);
 
     int aiIndex = getRandomInt(0, static_cast<int>(roster.size()) - 1);
@@ -621,7 +623,6 @@ void Game::playPVC() {
         player.resetForNewRound();
         computer.resetForNewRound();
 
-        // Boost Computer HP to 240 each round
         computer.setMaxHP(240);
         computer.setHP(240);
 
@@ -638,7 +639,6 @@ void Game::playPVC() {
                  << "  HP: " << computer.getHP()
                  << "  Mana: " << computer.getMana() << "\n\n";
 
-            // Player turn (can surrender)
             if (!handleLowHP(player, 1, GameMode::PVC, true)) {
                 computerWins++;
                 break;
@@ -670,7 +670,6 @@ void Game::playPVC() {
                 break;
             }
 
-            // Computer turn (no surrender)
             cout << "------------- COMPUTER TURN -------------\n\n";
             int aiSkillIndex = getRandomInt(
                 0,
@@ -686,8 +685,7 @@ void Game::playPVC() {
 
             int dmgA = computeDamage(computer, player, sa);
 
-            // scale computer damage lower each round (harder to die, must play smart)
-            double scale = 1.0 - 0.1 * (round - 1); // R1:1.0, R2:0.9 ... R5:0.6
+            double scale = 1.0 - 0.1 * (round - 1);
             if (scale < 0.5) scale = 0.5;
             int scaledDmgA = static_cast<int>(dmgA * scale);
             if (scaledDmgA < 0) scaledDmgA = 0;
@@ -707,7 +705,7 @@ void Game::playPVC() {
             cout << "You win Round " << round << "!\n\n";
             playerWins++;
         } else if (!player.isAlive() && computer.isAlive()) {
-            cout << "Computer wins this Round " << round << "!\n\n";
+            cout << "Computer wins Round " << round << "!\n\n";
             computerWins++;
         }
 
@@ -737,6 +735,3 @@ void Game::playPVC() {
     cin.get();
     clearScreen();
 }
-
-
-
