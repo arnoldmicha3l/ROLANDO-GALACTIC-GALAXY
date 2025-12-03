@@ -10,7 +10,8 @@
                 "-std=c++11",
                 "*.cpp",
                 "-o",
-                "main.exe"
+                "main.exe",
+                "-lwinmm"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"

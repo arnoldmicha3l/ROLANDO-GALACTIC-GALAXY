@@ -62,7 +62,7 @@ private:
     void initRoster();
     void viewAllCharacters();
     void displayCharacterDetails(int index);
-    void typeText(const char* text, int delayMs = 25);
+    void typeText(const char* text, int delayMs = 30);
 
     // Combat & Utility
     int getRandomInt(int min, int max);

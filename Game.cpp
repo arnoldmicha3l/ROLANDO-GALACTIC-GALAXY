@@ -1,4 +1,5 @@
 #include <windows.h>
+#include <mmsystem.h>
 #ifdef _WIN32
 #include "Game.h"
 #include "Character.h"
@@ -18,6 +19,7 @@
 #endif
 
 using namespace std;
+#pragma comment(lib, "winmm.lib") 
 
 // Assuming BASIC_ATTACK is defined in a global scope or Character/Skill headers
 // For completeness, define a basic attack fallback here if not defined elsewhere:
@@ -187,23 +189,24 @@ void Game::typeText(const char* text, int delayMs) {
 // ===========================================
 
 void Game::showIntro() {
+     PlaySound(TEXT("intro.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
     cout << "==================================================\n";
     cout << "          ROLANDO GALACTIC GRAVEYARD              \n";
     cout << "==================================================\n\n";
 
-    typeText("Welcome to Rolando Galactic Graveyard, a floating school.\n", 25);
-    typeText("in deep space where students settle their rivalries.\n", 25);
-    typeText("in the legendary battle arena.\n\n", 25);
-    typeText(" Choose your fighter, unleash your skills,\n", 25);
+    typeText("Welcome to Rolando Galactic Graveyard, a floating school.\n", 30);
+    typeText("in deep space where students settle their rivalries.\n", 30);
+    typeText("in the legendary battle arena.\n\n", 30);
+    typeText("Choose your fighter, unleash your skills,\n", 30);
 
-    typeText("Tonight, a new hunter enters the field.\n", 25);
-    typeText("Choose your warrior and carve your legend among the ruins.\n\n", 25);
+    typeText("Tonight, a new hunter enters the field.\n", 30);
+    typeText("Choose your warrior and carve your legend among the ruins.\n\n", 30);
 
-    typeText("Press Enter to continue...", 25);
+    typeText("Press Enter to continue...", 30);
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
     cin.get();
 
-
+     PlaySound(NULL, 0, 0);
     clearScreen();
 }
 
@@ -229,6 +232,7 @@ bool Game::confirmExit() {
 
 void Game::mainMenu() {
     while (true) {
+        PlaySound(TEXT("picking.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
         cout << "================ MAIN MENU ================\n";
         cout << " 1. Player vs Player\n";
         cout << " 2. Player vs Computer\n";
@@ -246,12 +250,15 @@ void Game::mainMenu() {
             clearScreen();
             continue;
         }
-
+        PlaySound(NULL, 0, 0);
         clearScreen();
 
+
         if (choice == 1) {
+            PlaySound(TEXT("pvp.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
             playPVP();
         } else if (choice == 2) {
+             PlaySound(TEXT("pvp.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
             playPVC();
         } else if (choice == 3) {              
             viewAllCharacters();
