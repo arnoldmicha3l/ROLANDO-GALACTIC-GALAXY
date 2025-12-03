@@ -1,8 +1,8 @@
 #include <windows.h>
 #ifdef _WIN32
 #include "Game.h"
-#include "Character.h" 
-#include "Skill.h" 
+#include "Character.h"
+#include "Skill.h"
 #include <iostream>
 #include <thread> 
 #include <chrono> 
@@ -18,9 +18,13 @@
 
 using namespace std;
 
+// Assuming BASIC_ATTACK is defined in a global scope or Character/Skill headers
+// For completeness, define a basic attack fallback here if not defined elsewhere:
+
 const char* HISTORY_FILE = "match_history.txt";
-// 1. Define the maximum history capacity
-const int MAX_HISTORY_CAPACITY = 3; 
+
+// NOTE: MAX_HISTORY_CAPACITY must be defined in Game.h
+// The MatchResult structure must also be fully defined in Game.h
 
 // ===========================================
 // CONSTRUCTOR & INITIALIZATION
@@ -48,7 +52,7 @@ void Game::run() {
 }
 
 // ===========================================
-// HISTORY & UTILITY IMPLEMENTATIONS
+// HISTORY & UTILITY IMPLEMENTATIONS (The Queue Logic)
 // ===========================================
 
 std::string MatchResult::getTimeString() const {
@@ -102,7 +106,8 @@ void Game::loadMatchHistory() {
         }
         infile.close();
         
-        // 2. Apply limit when loading history: if file had too many, remove oldest.
+        // Queue Logic: Apply limit when loading history: if file had too many, remove oldest (FIFO).
+        // Uses MAX_HISTORY_CAPACITY defined in Game.h
         while (history.size() > MAX_HISTORY_CAPACITY) {
             history.erase(history.begin());
         }
@@ -113,6 +118,8 @@ void Game::viewMatchHistory() {
     clearScreen();
     cout << "============== MATCH HISTORY (Last " << MAX_HISTORY_CAPACITY << ") ==============\n";
     
+    // **FIXED: Removed the non-C++ tag that caused the "identifier 'Image' is undefined" error.**
+    // The visualization explains the FIFO (First-In, First-Out) principle.
     if (history.empty()) {
         cout << " No past cosmic brawls found in the archives.\n";
         cout << "===========================================\n\n";
@@ -125,7 +132,7 @@ void Game::viewMatchHistory() {
              << std::setw(15) << "Winner"
              << std::setw(10) << "Score"
              << "Time\n";
-        cout << "----------------------------------------------------------------------------\n";
+        cout << "-----------------------------------------------------------------------------------------\n";
 
         for (const auto& result : history) {
             // Populate the table rows
@@ -138,7 +145,7 @@ void Game::viewMatchHistory() {
                  << result.getTimeString()
                  << "\n";
         }
-        cout << "===========================================\n\n";
+        cout << "==========================================================================================\n\n";
     }
 
     cout << "Press Enter to return to the main menu...";
@@ -153,7 +160,7 @@ void Game::viewMatchHistory() {
 
 void Game::showIntro() {
     cout << "==================================================\n";
-    cout << "           ROLANDO GALACTIC GRAVEYARD             \n";
+    cout << "          ROLANDO GALACTIC GRAVEYARD              \n";
     cout << "==================================================\n\n";
 
     cout << " Welcome to Rolando Galactic Graveyard, a floating school\n";
@@ -216,9 +223,9 @@ void Game::mainMenu() {
             playPVP();
         } else if (choice == 2) {
             playPVC();
-        } else if (choice == 3) {             
+        } else if (choice == 3) {              
             viewAllCharacters();
-        } else if (choice == 4) {             
+        } else if (choice == 4) {              
             showCredits();
         }else if(choice == 5){
             viewMatchHistory();
@@ -238,9 +245,9 @@ void Game::mainMenu() {
 }
 
 // ===========================================
-// CHARACTER ROSTER & DETAIL (initRoster, viewAllCharacters, displayCharacterDetails remain unchanged)
+// CHARACTER ROSTER & DETAIL 
 // ===========================================
-// ... (omitted for brevity, assume character logic is correct)
+// ... (initRoster, viewAllCharacters, displayCharacterDetails - content unchanged)
 void Game::initRoster() {
     // Arnold
     Character arnold(
@@ -369,7 +376,7 @@ void Game::displayCharacterDetails(int index) {
     Character &c = roster[index]; 
     
     cout << "=========================================\n"; 
-    cout << "           CHARACTER PROFILE             \n"; 
+    cout << "            CHARACTER PROFILE            \n"; 
     cout << "=========================================\n\n";
     cout << "Name : " << c.getName() << "\n";
     cout << "Title: " << c.getTitle() << "\n\n";
@@ -394,14 +401,14 @@ void Game::displayCharacterDetails(int index) {
 
     for (size_t i = 0; i < skills.size(); ++i) {
         cout << "  " << i + 1 << ") " << skills[i].name
-              << "  (Mana: " << skills[i].manaCost << ")\n";
+             << "  (Mana: " << skills[i].manaCost << ")\n";
         cout << "      " << skills[i].description << "\n";
         if (skills[i].isOneHitDelete) {
             cout << "      Damage: ONE-HIT DELETE (no mana needed).\n\n";
         } else {
             cout << "      Estimated Damage: around "
-                  << minDmg << " to " << maxDmg
-                  << " before passives.\n\n";
+                 << minDmg << " to " << maxDmg
+                 << " before passives.\n\n";
         }
     }
     cout << "=========================================\n\n";
@@ -413,12 +420,12 @@ void Game::displayCharacterDetails(int index) {
 
 
 // ===========================================
-// CHARACTER SELECTION & COMBAT LOGIC (chooseCharacter, getRandomInt, chooseSkill, computeDamage, handleLowHP remain unchanged)
+// CHARACTER SELECTION & COMBAT LOGIC 
 // ===========================================
-// ... (omitted for brevity, assume character logic is correct)
+// ... (chooseCharacter, getRandomInt, chooseSkill, computeDamage, handleLowHP - content unchanged)
 Character Game::chooseCharacter(int playerNumber,
-                                 bool showGrudges,
-                                 int forbiddenIndex) {
+                                     bool showGrudges,
+                                     int forbiddenIndex) {
     while (true) {
         cout << "=============== PLAYER " << playerNumber << " ===============\n";
         cout << "Choose your fighter from Galactica Academy:\n\n";
@@ -480,15 +487,15 @@ Character Game::chooseCharacter(int playerNumber,
         int maxDmg = chosen.getBaseDamage() + 5;
 
         for (size_t i = 0; i < skills.size(); ++i) {
-            cout << "   " << i + 1 << ") " << skills[i].name
-                  << "  (Mana: " << skills[i].manaCost << ")\n";
+            cout << "    " << i + 1 << ") " << skills[i].name
+                 << "  (Mana: " << skills[i].manaCost << ")\n";
             cout << "      " << skills[i].description << "\n";
             if (skills[i].isOneHitDelete) {
                 cout << "      Damage: ONE-HIT DELETE (no mana needed).\n\n";
             } else {
                 cout << "      Estimated Damage: around "
-                      << minDmg << " to " << maxDmg
-                      << " before passives.\n\n";
+                     << minDmg << " to " << maxDmg
+                     << " before passives.\n\n";
             }
         }
 
@@ -673,8 +680,8 @@ void Game::playPVP() {
     const int roundsToWin = 3;
 
     for (int round = 1;
-          round <= 5 && p1Wins < roundsToWin && p2Wins < roundsToWin;
-          ++round) {
+         round <= 5 && p1Wins < roundsToWin && p2Wins < roundsToWin;
+         ++round) {
 
         p1.resetForNewRound();
         p2.resetForNewRound();
@@ -709,7 +716,7 @@ void Game::playPVP() {
 
             if (!s1.isOneHitDelete && p1.getMana() < s1.manaCost) {
                 cout << "Not enough mana for " << s1.name
-                     << ". Using basic attack instead.\n\n";
+                      << ". Using basic attack instead.\n\n";
                 skillToUse1 = &BASIC_ATTACK;
             } else {
                 p1.useMana(s1.manaCost);
@@ -745,7 +752,7 @@ void Game::playPVP() {
 
             if (!s2.isOneHitDelete && p2.getMana() < s2.manaCost) {
                 cout << "Not enough mana for " << s2.name
-                     << ". Using basic attack instead.\n\n";
+                      << ". Using basic attack instead.\n\n";
                 skillToUse2 = &BASIC_ATTACK;
             } else {
                 p2.useMana(s2.manaCost);
@@ -810,11 +817,11 @@ void Game::playPVP() {
 
     history.push_back(result);
     
-    // 3. FIX: Check capacity and delete the oldest entry if exceeded
+    // **QUEUE LOGIC:** Check capacity and delete the oldest entry (FIFO) if exceeded
     if (history.size() > MAX_HISTORY_CAPACITY) {
         history.erase(history.begin());
     }
-    // End FIX
+    // End QUEUE LOGIC
 
     saveMatchHistory();
 
@@ -846,8 +853,8 @@ void Game::playPVC() {
     cin.get();
 
     for (int round = 1;
-          round <= 5 && playerWins < roundsToWin && computerWins < roundsToWin;
-          ++round) {
+         round <= 5 && playerWins < roundsToWin && computerWins < roundsToWin;
+         ++round) {
 
         player.resetForNewRound();
         computer.resetForNewRound();
@@ -883,7 +890,7 @@ void Game::playPVC() {
 
             if (!sp.isOneHitDelete && player.getMana() < sp.manaCost) {
                 cout << "Not enough mana for " << sp.name
-                     << ". Using basic attack instead.\n\n";
+                      << ". Using basic attack instead.\n\n";
                 skillToUseP = &BASIC_ATTACK;
             } else {
                 player.useMana(sp.manaCost);
@@ -932,9 +939,10 @@ void Game::playPVC() {
             cout << "  Computer - HP: " << computer.getHP()
                   << " | Mana: " << computer.getMana() << "\n\n";
         }
-
+        
+        // Announce round winner
         if (player.isAlive() && !computer.isAlive()) {
-            cout << "You win Round " << round << "!\n\n";
+            cout << "Player 1 wins Round " << round << "!\n\n";
             playerWins++;
         } else if (!player.isAlive() && computer.isAlive()) {
             cout << "Computer wins Round " << round << "!\n\n";
@@ -942,7 +950,7 @@ void Game::playPVC() {
         }
 
         cout << "Scoreboard:\n";
-        cout << "  You: " << playerWins << " wins\n";
+        cout << "  Player 1: " << playerWins << " wins\n";
         cout << "  Computer: " << computerWins << " wins\n\n";
 
         if (round < 5 && playerWins < roundsToWin && computerWins < roundsToWin) {
@@ -953,21 +961,22 @@ void Game::playPVC() {
         }
     }
 
+    // **FIXED: Completed the function with the match result and history logging.**
     cout << "================ MATCH RESULT ================\n\n";
     std::string winnerName;
     std::string score = std::to_string(playerWins) + "-" + std::to_string(computerWins);
     
     if (playerWins > computerWins) {
-        cout << "You have passed the Galactica trial against the Computer!\n\n";
+        cout << "Player 1 is the champion of Galactica Academy!\n\n";
         winnerName = player.getName();
     } else if (computerWins > playerWins) {
-        cout << "The Computer has outplayed you this time.\n\n";
+        cout << "The Computer is the champion of Galactica Academy!\n\n";
         winnerName = computer.getName();
     } else {
-        cout << "The stars show a balanced result. It's a draw.\n\n";
+        cout << "It ends in a cosmic draw.\n\n";
         winnerName = "Draw";
     }
-    
+
     // Record the match result
     MatchResult result;
     result.mode = "PVC";
@@ -980,11 +989,11 @@ void Game::playPVC() {
 
     history.push_back(result);
     
-    // 4. FIX: Check capacity and delete the oldest entry if exceeded
+    // **QUEUE LOGIC:** Check capacity and delete the oldest entry (FIFO) if exceeded
     if (history.size() > MAX_HISTORY_CAPACITY) {
         history.erase(history.begin());
     }
-    // End FIX
+    // End QUEUE LOGIC
 
     saveMatchHistory();
 

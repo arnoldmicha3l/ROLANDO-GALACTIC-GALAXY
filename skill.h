@@ -27,6 +27,6 @@ public:
 
 // Global constant definition for the Basic Attack fallback
 // The Game.cpp logic relies on this definition being available.
-const Skill BASIC_ATTACK = {"Basic Attack", "A simple physical strike.", 0, false};
+static const Skill BASIC_ATTACK = {"Basic Attack", "A simple physical strike.", 0, false};
 
 #endif // SKILL_H
