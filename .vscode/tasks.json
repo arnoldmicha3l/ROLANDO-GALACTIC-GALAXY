@@ -2,24 +2,18 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "C/C++: g++.exe build all cpp with C++11",
+            "label": "Build All C++",
             "type": "shell",
-            "command": "C:\\mingw64\\bin\\g++.exe",
+            "command": "g++",
             "args": [
-                "-fdiagnostics-color=always",
                 "-g",
                 "-std=c++11",
-                // CHANGED: Use ${workspaceFolder} for consistency with debugger
-                "${workspaceFolder}/main.cpp",
-                "${workspaceFolder}/Game.cpp",
-                "${workspaceFolder}/Character.cpp",
+                "*.cpp",
                 "-o",
-                // CHANGED: Output main.exe to the project root
-                "${workspaceFolder}/main.exe"
+                "main.exe"
             ],
             "options": {
-                // CHANGED: Set CWD to the project folder
-                "cwd": "${workspaceFolder}" 
+                "cwd": "${workspaceFolder}"
             },
             "problemMatcher": [
                 "$gcc"
@@ -27,9 +21,7 @@
             "group": {
                 "kind": "build",
                 "isDefault": true
-            },
-            "detail": "Compiler: C:\\mingw64\\bin\\g++.exe"
-        },
-        // ... (other tasks)
+            }
+        }
     ]
 }

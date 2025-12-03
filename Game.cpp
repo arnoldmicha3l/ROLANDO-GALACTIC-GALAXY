@@ -14,6 +14,7 @@
 #include <ctime>
 #include <fstream>
 #include <sstream>
+#include <conio.h>
 #endif
 
 using namespace std;
@@ -154,6 +155,33 @@ void Game::viewMatchHistory() {
     clearScreen();
 }
 
+void Game::typeText(const char* text, int delayMs) {
+    bool skipThisString = false;
+
+    for (int i = 0; text[i] != '\0'; i++) {
+        char c = text[i];
+        cout << c << flush;
+
+        if (skipThisString || delayMs <= 0)
+            continue;
+
+        int step = max(1, delayMs / 5);
+        int elapsed = 0;
+
+        while (elapsed < delayMs) {
+            if (_kbhit()) {
+                int key = _getch();
+                if (key == ' ') {
+                    skipThisString = true;
+                    break;
+                }
+            }
+            this_thread::sleep_for(chrono::milliseconds(step));
+            elapsed += step;
+        }
+    }
+}
+
 // ===========================================
 // MAIN MENU & INTRO
 // ===========================================
@@ -163,16 +191,18 @@ void Game::showIntro() {
     cout << "          ROLANDO GALACTIC GRAVEYARD              \n";
     cout << "==================================================\n\n";
 
-    cout << " Welcome to Rolando Galactic Graveyard, a floating school\n";
-    cout << " in deep space where students settle their rivalries\n";
-    cout << " in the legendary battle arena.\n\n";
+    typeText("Welcome to Rolando Galactic Graveyard, a floating school.\n", 25);
+    typeText("in deep space where students settle their rivalries.\n", 25);
+    typeText("in the legendary battle arena.\n\n", 25);
+    typeText(" Choose your fighter, unleash your skills,\n", 25);
 
-    cout << " Choose your fighter, unleash your skills,\n";
-    cout << " and prove who rules the stars.\n\n";
+    typeText("Tonight, a new hunter enters the field.\n", 25);
+    typeText("Choose your warrior and carve your legend among the ruins.\n\n", 25);
 
-    cout << " Press Enter to continue...";
+    typeText("Press Enter to continue...", 25);
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
     cin.get();
+
 
     clearScreen();
 }
