@@ -1,39 +1,86 @@
 #ifndef GAME_H
 #define GAME_H
+
 #include "Character.h"
 #include <vector>
+#include <string>
 #include <random>
-using namespace std;
+#include <chrono>
+#include <functional> // <-- add this
+#include <unordered_map> // <-- add this
 
+// Forward declarations
+class Character;
+struct Skill;
 
-enum class GameMode { PVP, PVC };
+// ===========================================
+// HISTORY STRUCTURES
+// ===========================================
+
+// Match result data structure
+struct MatchResult {
+    std::string mode;
+    std::string p1_char;
+    std::string p2_char;
+    std::string winner_name;
+    std::string score; // e.g., "3-1"
+    long long timestamp;
+
+    std::string getTimeString() const;
+};
+
+// ===========================================
+// GAME CLASS
+// ===========================================
+
+enum class GameMode {
+    PVP,
+    PVC
+};
 
 class Game {
 public:
-Game();
-void run();
-void clearScreen();
-bool confirmExit();
+    Game();
+    void run();
 
 private:
-vector<Character> roster;
-std::mt19937 rng;
+    std::vector<Character> roster;
+    // History vector acts as the Queue (FIFO)
+    std::vector<MatchResult> history;
+    std::mt19937 rng;
 
-void initRoster();
-void showIntro();
-void mainMenu();
-void playPVP();
-void playPVC();
-void viewAllCharacters();
-void displayCharacterDetails(int index);
-void showCredits();
-Character chooseCharacter(int playerNumber, bool showGrudges, int forbiddenIndex);
-int chooseSkill(const Character &ch);
-int getRandomInt(int min, int max);
-int computeDamage(Character &attacker, Character &defender, const Skill &skill);
-bool handleLowHP(Character &ch, int playerNumber, GameMode mode, bool isHuman);
-void printCharacterCard(const Character &ch, int index);
+    // Constants
+    const char* HISTORY_FILE = "match_history.txt";
+    const int MAX_HISTORY_CAPACITY = 3;
 
+    // Core Game Flow
+    void showIntro();
+    void mainMenu();
+    void clearScreen();
+    bool confirmExit();
+    void showCredits();
+
+    // Character Management
+    void initRoster();
+    void viewAllCharacters();
+    void displayCharacterDetails(int index);
+    void typeText(const char* text, int delayMs = 25);
+
+    // Combat & Utility
+    int getRandomInt(int min, int max);
+    Character chooseCharacter(int playerNumber, bool showGrudges, int forbiddenIndex = -1);
+    int chooseSkill(const Character &ch);
+    int computeDamage(Character &attacker, Character &defender, const Skill &skill);
+    bool handleLowHP(Character &ch, int playerNumber, GameMode mode, bool isHuman);
+
+    // Game Modes
+    void playPVP();
+    void playPVC();
+
+    // History Queue Management
+    void saveMatchHistory();
+    void loadMatchHistory();
+    void viewMatchHistory();
 };
 
 #endif // GAME_H

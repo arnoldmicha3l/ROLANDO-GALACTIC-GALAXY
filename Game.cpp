@@ -1,31 +1,66 @@
 #include <windows.h>
-#ifdef _WIN32
-#include "Game.h"
+#include <mmsystem.h>
+#pragma comment(lib, "winmm.lib")
+
 #include <iostream>
-#include <thread>   // For sleep
-#include <chrono>   // For milliseconds
+#include <iomanip>
 #include <cstdlib>
 #include <limits>
 #include <cctype>
 #include <random>
-#endif
+#include <ctime>
+#include <fstream>
+#include <sstream>
+#include <conio.h>
+#include <vector>
+#include <algorithm>
+#include <chrono>
+#include <functional>      // for std::function
+#include <unordered_map>   // for menu map
+
+#include "Game.h"
+#include "Character.h"
+#include "Skill.h"
 
 using namespace std;
 
+const char* HISTORY_FILE = "match_history.txt";
+
+// ===========================================
+// MATCH RESULT: TIME STRING
+// ===========================================
+
+string MatchResult::getTimeString() const {
+    // timestamp is stored as milliseconds since Unix epoch
+    using namespace std::chrono;
+
+    time_t raw = static_cast<time_t>(timestamp / 1000);
+    tm* ti = localtime(&raw);
+    if (!ti) return "unknown";
+
+    char buf[80];
+    strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", ti);
+    return string(buf);
+}
+
+// ===========================================
+// CONSTRUCTOR / CORE
+// ===========================================
+
 Game::Game() {
-    std::random_device rd;
+    random_device rd;
     rng.seed(rd());
     initRoster();
+    loadMatchHistory();
 }
 
 void Game::clearScreen() {
 #ifdef _WIN32
     system("cls");
 #else
-    std::cout << "\033[2J\033[1;1H";
+    cout << "\033[2J\033[1;1H";
 #endif
 }
-
 
 void Game::run() {
     clearScreen();
@@ -33,53 +68,187 @@ void Game::run() {
     mainMenu();
 }
 
-void Game::showIntro() {
-    cout << "==================================================\n";
-    cout << "          ROLANDO GALACTIC GRAVEYARD                  \n";
-    cout << "==================================================\n\n";
+// ===========================================
+// MATCH HISTORY SYSTEM
+// ===========================================
 
-    cout << "  Welcome to Rolando Galactic Graveyard, a floating school\n";
-    cout << "  in deep space where students settle their rivalries\n";
-    cout << "  in the legendary battle arena.\n\n";
+void Game::saveMatchHistory() {
+    ofstream out(HISTORY_FILE);
+    if (!out.is_open()) return;
 
-    cout << "  Choose your fighter, unleash your skills,\n";
-    cout << "  and prove who rules the stars.\n\n";
+    for (auto& r : history) {
+        out << r.mode << "|"
+            << r.p1_char << "|"
+            << r.p2_char << "|"
+            << r.winner_name << "|"
+            << r.score << "|"
+            << r.timestamp << "\n";
+    }
+}
 
-    cout << "  Press Enter to continue...";
+void Game::loadMatchHistory() {
+    ifstream in(HISTORY_FILE);
+    if (!in.is_open()) return;
+
+    string line;
+    while (getline(in, line)) {
+        stringstream ss(line);
+        string part;
+        vector<string> p;
+
+        while (getline(ss, part, '|'))
+            p.push_back(part);
+
+        if (p.size() == 6) {
+            history.push_back({
+                p[0], p[1], p[2], p[3], p[4], stoll(p[5])
+            });
+        }
+    }
+
+    // Enforce queue capacity (FIFO)
+    while (history.size() > MAX_HISTORY_CAPACITY)
+        history.erase(history.begin());
+}
+
+void Game::viewMatchHistory() {
+    clearScreen();
+    cout << "============== MATCH HISTORY (Last "
+         << MAX_HISTORY_CAPACITY << ") ==============\n\n";
+
+    if (history.empty()) {
+        cout << "No past cosmic brawls found in the archives.\n\n";
+    } else {
+        cout << left
+             << setw(6)  << "Mode"
+             << setw(15) << "P1 Char"
+             << setw(15) << "P2 Char"
+             << setw(15) << "Winner"
+             << setw(10) << "Score"
+             << "Time\n";
+        cout << "---------------------------------------------------------------\n";
+
+        for (const auto& r : history) {
+            cout << left
+                 << setw(6)  << r.mode
+                 << setw(15) << r.p1_char
+                 << setw(15) << r.p2_char
+                 << setw(15) << r.winner_name
+                 << setw(10) << r.score
+                 << r.getTimeString() << "\n";
+        }
+        cout << "\n";
+    }
+
+    cout << "Press Enter to return...";
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
     cin.get();
-
     clearScreen();
 }
 
-bool Game::confirmExit() {
-    while (true) {
-        cout << "\nAre you sure to exit the game? Type yes/no: ";
-        string answer;
-        cin >> answer;
+// ===========================================
+// TYPE TEXT — Sleep() + SKIP WITH SPACEBAR
+// ===========================================
 
-        for (char &c : answer) {
-            c = static_cast<char>(tolower(c));
-        }
+void Game::typeText(const char* text, int delayMs) {
+    bool skipLine = false;
 
-        if (answer == "yes") {
-            return true;
-        } else if (answer == "no") {
-            return false;
-        } else {
-            cout << "Please type yes or no.\n";
+    for (int i = 0; text[i] != '\0'; i++) {
+        cout << text[i] << flush;
+
+        if (skipLine || delayMs <= 0)
+            continue;
+
+        int step = max(1, delayMs / 5);
+        int elapsed = 0;
+
+        while (elapsed < delayMs) {
+            if (_kbhit()) {
+                if (_getch() == ' ') {
+                    // Spacebar: skip the rest of this line at full speed
+                    skipLine = true;
+                    break;
+                }
+            }
+
+            Sleep(step);
+            elapsed += step;
         }
     }
 }
 
-void Game::mainMenu() {
+// ===========================================
+// INTRO SCREEN (WITH MUSIC)
+// ===========================================
+
+void Game::showIntro() {
+    // Loop intro music
+    PlaySound(TEXT("intro.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
+
+    cout << "==================================================\n";
+    cout << "          ROLANDO GALACTIC GRAVEYARD              \n";
+    cout << "==================================================\n\n";
+
+    typeText("Welcome to Rolando Galactic Graveyard, a floating school.\n", 25);
+    typeText("in deep space where students settle their rivalries\n", 25);
+    typeText("in the legendary battle arena.\n\n", 25);
+    typeText("Choose your fighter, unleash your skills,\n", 25);
+    typeText("Tonight, a new hunter enters the field.\n", 25);
+    typeText("Choose your warrior and carve your legend.\n\n", 25);
+
+    typeText("Press Enter to continue...", 25);
+
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    cin.get();
+
+    // Stop music
+    PlaySound(NULL, 0, 0);
+    clearScreen();
+}
+
+// ===========================================
+// CONFIRM EXIT
+// ===========================================
+
+bool Game::confirmExit() {
     while (true) {
+        cout << "\nAre you sure to exit? yes/no: ";
+        string a;
+        cin >> a;
+
+        for (char& c : a) c = static_cast<char>(tolower(c));
+
+        if (a == "yes") return true;
+        if (a == "no")  return false;
+
+        cout << "Please type yes or no.\n";
+    }
+}
+
+// ===========================================
+// MAIN MENU
+// ===========================================
+
+void Game::mainMenu() {
+    unordered_map<int, function<void()>> menuActions = {
+        {1, [this]{ PlaySound(TEXT("battle.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP); playPVP(); }},
+        {2, [this]{ PlaySound(TEXT("battle.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP); playPVC(); }},
+        {3, [this]{ viewAllCharacters(); }},
+        {4, [this]{ PlaySound(TEXT("credits.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP); showCredits(); }},
+        {5, [this]{ viewMatchHistory(); }},
+        {6, [this]{ if(confirmExit()){ clearScreen(); exit(0); } }}
+    };
+
+    while (true) {
+        PlaySound(TEXT("picking.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
+
         cout << "================ MAIN MENU ================\n";
-        cout << "  1. Player vs Player\n";
-        cout << "  2. Player vs Computer\n";
-        cout << "  3. View All Characters\n";
-        cout << "  4. Credits\n";
-        cout << "  5. Exit Game\n";
+        cout << " 1. Player vs Player\n";
+        cout << " 2. Player vs Computer\n";
+        cout << " 3. View All Characters\n";
+        cout << " 4. Credits\n";
+        cout << " 5. View Match Results\n";
+        cout << " 6. Exit Game\n";
         cout << "===========================================\n";
         cout << "Enter choice: ";
 
@@ -92,347 +261,261 @@ void Game::mainMenu() {
         }
 
         clearScreen();
+        PlaySound(NULL, 0, 0);
 
-        if (choice == 1) {
-            playPVP();
-        } else if (choice == 2) {
-            playPVC();
-        } else if (choice == 3) {             
-            viewAllCharacters();
-        } else if (choice == 4) {             
-            showCredits();
-        } else if (choice == 5) {
-            if (confirmExit()) {
-                clearScreen();
-                cout << "Exiting Galactica Campus Brawl...\n";
-                cout << "See you next orbit, cadet.\n\n";
-                break;
-            } else {
-                clearScreen();
-            }
+        auto it = menuActions.find(choice);
+        if (it != menuActions.end()) {
+            it->second();
         } else {
             cout << "Invalid choice. Please try again.\n\n";
         }
     }
 }
 
+
+// ===========================================
+// ROSTER SETUP
+// ===========================================
+
 void Game::initRoster() {
-    // Arnold
-    Character arnold(
-        "Arnold",
-        "The Lover Boy",
-        100,
-        80,
-        18,
-        "Romantic Aura: Heals 5 HP whenever his special charm lands.",
-        "Arnold used to write love letters to half the class, "
-        "but one viral rejection turned him into a legend of heartbreak.",
-        "Arnold holds grudges against Kyle for mocking his love notes, "
-        "Timothy for roasting his failed confessions, "
-        "and Rolando for stealing the spotlight at every school event."
-    );
-    arnold.addSkill({"Heart Shot", "A focused blast of pure charm.", 10, false});
-    arnold.addSkill({"Romantic Shield", "Protects his heart and softens incoming blows.", 12, false});
-    arnold.addSkill({"Starlit Serenade", "A cosmic love song that hits harder in the dark of space.", 18, false});
-    // ONE-HIT DELETE: no mana required
-    arnold.addSkill({"Love Delete", "A forbidden letter that deletes the enemy from his story.", 0, true});
+    struct CharacterData {
+        std::string name, title, bio, grudge;
+        int hp, mana, baseDmg;
+        std::vector<Skill> skills;
+    };
 
-    // Kyle
-    Character kyle(
-        "Kyle",
-        "The Master Beater",
-        120,
-        60,
-        20,
-        "Combo Master: 20% chance to double his attack.",
-        "Kyle dominates every training exam and combat class, "
-        "famous for finishing practice fights before the timer starts.",
-        "Kyle cannot stand Arnold's drama, Laurence's attitude, "
-        "and Timothy's trash talk. He swore to beat them all in the arena."
-    );
-    kyle.addSkill({"Meteor Jab", "Fast galactic punches straight to the jaw.", 10, false});
-    kyle.addSkill({"Asteroid Uppercut", "A heavy uppercut that launches rivals skyward.", 15, false});
-    kyle.addSkill({"Orbit Breaker", "A ruthless combo that breaks enemy rhythm.", 20, false});
-    // ONE-HIT DELETE: no mana required
-    kyle.addSkill({"Galaxy Eraser", "A clean, brutal hit that erases the opponent.", 0, true});
-
-    // Laurence
-    Character laurence(
-        "Laurence",
-        "The Bitch Slayer",
-        110,
-        90,
-        17,
-        "Relentless: Deals +5 damage against low HP opponents.",
-        "Laurence was once quiet, until everyone pushed too far. "
-        "Now no one dares cross him twice.",
-        "Laurence has history with everyone. He remembers every insult "
-        "from Timothy, every flex from Kyle, and every dramatic scene from Arnold."
-    );
-    laurence.addSkill({"Nebula Slash", "A sharp strike that cuts through space dust.", 8, false});
-    laurence.addSkill({"Supernova Spin", "A spinning slash powered by starfire.", 14, false});
-    laurence.addSkill({"Void Pressure", "Gravity crushes the enemy from all sides.", 18, false});
-    // ONE-HIT DELETE: no mana required
-    laurence.addSkill({"Oblivion Cut", "A one-hit dimensional cut that sends foes into nothingness.", 0, true});
-
-    // Timothy
-    Character timothy(
-        "Timothy",
-        "The Trash Talker",
-        100,
-        100,
-        15,
-        "Mind Games: 30% chance to add extra psychic damage.",
-        "Timothy never throws the first punch, just the first insult. "
-        "Most battles start because of his mouth.",
-        "Timothy roasts everyone: Arnold's heartbreak, Kyle's ego, "
-        "Laurence's temper, and Rolando's dramatic entrances."
-    );
-    timothy.addSkill({"Verbal Meteor", "Insults that land like falling rocks.", 8, false});
-    timothy.addSkill({"Psychic Echo", "Words that echo painfully in the mind.", 12, false});
-    timothy.addSkill({"Galaxy Roast", "An interstellar insult that burns pride and HP.", 20, false});
-    // ONE-HIT DELETE: no mana required
-    timothy.addSkill({"Silence of Space", "One cursed sentence that deletes the target.", 0, true});
-
-    // Rolando
-    Character rolando(
-        "Rolando",
-        "Galactic Slayer",
-        130,
-        70,
-        19,
-        "Galactic Fury: 25% chance to deal +5 bonus damage.",
-        "Rolando is a transfer student rumored to have cleared whole simulations alone.",
-        "Rolando feels above petty drama, but deep down he is tired of Kyle's bragging, "
-        "Timothy's comments, and being treated like a final boss by everyone."
-    );
-    rolando.addSkill({"Comet Strike", "A charged strike with comet-level impact.", 10, false});
-    rolando.addSkill({"Black Hole Crash", "Pulls the foe in before landing a crushing blow.", 15, false});
-    rolando.addSkill({"Starfall Barrage", "A barrage of starlight strikes from above.", 20, false});
-    // ONE-HIT DELETE: no mana required
-    rolando.addSkill({"Cosmic Delete", "Erases the enemy from the galactic record.", 0, true});
+    std::vector<CharacterData> data = {
+        {"Arnold", "The Lover Boy", 
+         "Arnold used to write love letters to half the class...", 
+         "Arnold holds grudges against Kyle, Timothy, and Rolando.", 
+         100, 80, 18,
+         { {"Heart Shot", "A focused blast of pure charm.", 10, false},
+           {"Romantic Shield", "Softens incoming blows.", 12, false},
+           {"Starlit Serenade", "A cosmic love song.", 18, false},
+           {"Love Delete", "Deletes the enemy.", 0, true} }},
+        {"Kyle", "The Master Beater",
+         "Kyle dominates every combat exam.",
+         "Kyle cannot stand Arnold's drama, Laurence's attitude, and Timothy's trash talk.",
+         120, 60, 20,
+         { {"Meteor Jab", "Fast galactic punches.", 10, false},
+           {"Asteroid Uppercut", "Launches rivals.", 15, false},
+           {"Orbit Breaker", "Breaks enemy rhythm.", 20, false},
+           {"Galaxy Eraser", "One-hit erase.", 0, true} }},
+        {"Laurence", "The Bitch Slayer",
+         "Laurence was once quiet, until everyone pushed too far.",
+         "Laurence has history with everyone and never forgets a slight.",
+         110, 90, 17,
+         { {"Nebula Slash", "Sharp space strike.", 8, false},
+           {"Supernova Spin", "Starfire spin.", 14, false},
+           {"Void Pressure", "Gravity crush.", 18, false},
+           {"Oblivion Cut", "Dimensional delete.", 0, true} }},
+        {"Timothy", "The Trash Talker",
+         "Timothy starts fights with words, not punches.",
+         "He roasts Arnold's heartbreaks, Kyle's ego, and Laurence's temper.",
+         100, 100, 15,
+         { {"Verbal Meteor", "Insults drop like rocks.", 8, false},
+           {"Psychic Echo", "Painful echoes in the mind.", 12, false},
+           {"Galaxy Roast", "Burns pride and HP.", 20, false},
+           {"Silence of Space", "Cursed delete.", 0, true} }},
+        {"Rolando", "Galactic Slayer",
+         "Rumored to clear simulations alone.",
+         "He hates Kyle's bragging and Timothy's comments.",
+         130, 70, 19,
+         { {"Comet Strike", "Comet impact.", 10, false},
+           {"Black Hole Crash", "Pull + crush.", 15, false},
+           {"Starfall Barrage", "Starlight barrage.", 20, false},
+           {"Cosmic Delete", "Instant erase.", 0, true} }}
+    };
 
     roster.clear();
-    roster.push_back(arnold);
-    roster.push_back(kyle);
-    roster.push_back(laurence);
-    roster.push_back(timothy);
-    roster.push_back(rolando);
+    for (const auto& d : data) {
+        Character c(d.name, d.title, d.hp, d.mana, d.baseDmg, "", d.bio, d.grudge);
+        for (const auto& s : d.skills) c.addSkill(s);
+        roster.push_back(c);
+    }
 }
 
-void Game::printCharacterCard(const Character &ch, int index) {
-    cout << "  " << index << ") "
-         << ch.getName() << " " << ch.getTitle() << "\n";
-    cout << "     HP: " << ch.getMaxHP()
-         << "  Mana: " << ch.getMaxMana()
-         << "  Base Damage: " << ch.getBaseDamage() << "\n";
-    cout << "     Passive: " << ch.getPassiveDesc() << "\n\n";
-}
+// ===========================================
+// CHARACTER VIEW, DETAILS, SELECTION
+// ===========================================
 
-Character Game::chooseCharacter(int playerNumber,
-                                bool showGrudges,
-                                int forbiddenIndex) {
+void Game::viewAllCharacters() {
     while (true) {
-        cout << "=============== PLAYER " << playerNumber << " ===============\n";
-        cout << "Choose your fighter from Galactica Academy:\n\n";
+        clearScreen();
+        cout << "===== VIEW ALL CHARACTERS =====\n\n";
 
-        for (size_t i = 0; i < roster.size(); ++i) {
-            int idx = static_cast<int>(i);
-            cout << "  " << idx + 1 << ") "
-                 << roster[i].getName()
-                 << " " << roster[i].getTitle();
-            if (idx == forbiddenIndex) {
-                cout << "  [TAKEN]";
-            }
-            cout << "\n";
-        }
+        for (size_t i = 0; i < roster.size(); i++)
+            cout << i+1 << ". " << roster[i].getName() << "\n";
 
-        cout << "\nEnter choice (1-" << roster.size() << "): ";
+        cout << roster.size() + 1 << ". Back\n\n";
 
+        cout << "Choose a character: ";
         int choice;
+
         if (!(cin >> choice)) {
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            clearScreen();
             continue;
         }
 
-        int index = choice - 1;
-        if (index < 0 || index >= static_cast<int>(roster.size())) {
+        if (choice == (int)roster.size() + 1) {
             clearScreen();
-            cout << "Invalid choice. Please try again.\n\n";
-            continue;
+            return;
         }
 
-        if (index == forbiddenIndex) {
-            clearScreen();
-            cout << "That character is already chosen by the other player.\n";
-            cout << "Please select another fighter.\n\n";
-            continue;
-        }
-
-        Character chosen = roster[index];
-        chosen.resetForNewRound();
-
-        clearScreen();
-        cout << "============================================\n";
-        cout << "Player " << playerNumber << " chose:\n\n";
-        cout << "  " << chosen.getName() << " " << chosen.getTitle() << "\n\n";
-        cout << "  Story:\n";
-        cout << "  " << chosen.getBio() << "\n\n";
-
-        if (showGrudges) {
-            cout << "  Grudges:\n";
-            cout << "  " << chosen.getGrudge() << "\n\n";
-        }
-
-        // Skill damage preview (shown once after selecting)
-        cout << "  Skills & Damage Preview:\n\n";
-        const vector<Skill> &skills = chosen.getSkills();
-        int minDmg = chosen.getBaseDamage() - 3;
-        int maxDmg = chosen.getBaseDamage() + 5;
-
-        for (size_t i = 0; i < skills.size(); ++i) {
-            cout << "   " << i + 1 << ") " << skills[i].name
-                 << "  (Mana: " << skills[i].manaCost << ")\n";
-            cout << "      " << skills[i].description << "\n";
-            if (skills[i].isOneHitDelete) {
-                cout << "      Damage: ONE-HIT DELETE (no mana needed).\n\n";
-            } else {
-                cout << "      Estimated Damage: around "
-                     << minDmg << " to " << maxDmg
-                     << " before passives.\n\n";
-            }
-        }
-
-        cout << "Press Enter to continue...";
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
-        cin.get();
-
-        clearScreen();
-        return chosen;
+        if (choice >= 1 && choice <= (int)roster.size())
+            displayCharacterDetails(choice - 1);
     }
 }
+
+void Game::displayCharacterDetails(int i) {
+    clearScreen();
+
+    Character& c = roster[i];
+
+    cout << "=========================================\n";
+    cout << "            CHARACTER PROFILE            \n";
+    cout << "=========================================\n\n";
+
+    cout << "Name : " << c.getName() << "\n";
+    cout << "Title: " << c.getTitle() << "\n\n";
+
+    cout << "--- BACKSTORY ---\n" << c.getBio() << "\n\n";
+    cout << "--- GRUDGES ---\n" << c.getGrudge() << "\n\n";
+
+    cout << left;
+    cout << setw(12) << "HP"          << ": " << c.getHP()        << " / " << c.getMaxHP()     << "\n";
+    cout << setw(12) << "Mana"        << ": " << c.getMana()      << " / " << c.getMaxMana()   << "\n";
+    cout << setw(12) << "Base Damage" << ": " << c.getBaseDamage() << "\n\n";
+
+    cout << "=== SKILLS ===\n";
+    const auto& skills = c.getSkills();
+
+    int min = c.getBaseDamage() - 3;
+    int max = c.getBaseDamage() + 5;
+
+    for (size_t i = 0; i < skills.size(); i++) {
+        cout << i+1 << ") " << skills[i].name << " (Mana: " << skills[i].manaCost << ")\n";
+        cout << "    " << skills[i].description << "\n";
+        if (skills[i].isOneHitDelete)
+            cout << "    Damage: ONE-HIT DELETE.\n\n";
+        else
+            cout << "    Est. Damage: " << min << "–" << max << "\n\n";
+    }
+
+    cout << "Press Enter...";
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    cin.get();
+}
+
+// ===========================================
+// UTILS & SKILLS
+// ===========================================
 
 int Game::getRandomInt(int min, int max) {
     uniform_int_distribution<int> dist(min, max);
     return dist(rng);
 }
 
-int Game::chooseSkill(const Character &ch) {
-    const vector<Skill> &skills = ch.getSkills();
+int Game::chooseSkill(const Character& ch) {
+    const auto& skills = ch.getSkills();
 
-    cout << "Select a skill for " << ch.getName()
-         << " " << ch.getTitle() << ":\n\n";
+    cout << "Choose a skill for " << ch.getName() << ":\n\n";
 
-    for (size_t i = 0; i < skills.size(); ++i) {
-        cout << "  " << i + 1 << ") " << skills[i].name
-             << "  (Mana: " << skills[i].manaCost << ")\n";
-        cout << "     " << skills[i].description;
-        if (skills[i].isOneHitDelete) {
-            cout << "  [ONE-HIT DELETE]";
-        }
-        cout << "\n\n";
+    for (size_t i = 0; i < skills.size(); i++) {
+        cout << i+1 << ") " << skills[i].name
+             << " (Mana: " << skills[i].manaCost << ")";
+        if (skills[i].isOneHitDelete)
+            cout << " [DELETE]";
+        else if (ch.getMana() < skills[i].manaCost)
+            cout << " [LOW MANA]";
+        cout << "\n    " << skills[i].description << "\n\n";
     }
 
-    int randomIndex = getRandomInt(0, static_cast<int>(skills.size()) - 1);
-    cout << "  Randomizer suggests: Skill #" << randomIndex + 1 << "\n\n";
+    int suggested = getRandomInt(1, (int)skills.size());
+    cout << "Random suggests: " << suggested << "\n\n";
 
-    int choice;
+    int c;
     while (true) {
-        cout << "Enter skill number (1-" << skills.size() << "): ";
-        if (!(cin >> choice)) {
+        cout << "Enter skill number: ";
+        if (!(cin >> c)) {
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            cout << "Invalid input. Please try again.\n";
             continue;
         }
-        if (choice >= 1 && choice <= static_cast<int>(skills.size())) {
-            break;
-        }
-        cout << "Invalid skill. Please try again.\n";
+        if (c >= 1 && c <= (int)skills.size()) break;
+        cout << "Invalid.\n";
     }
 
     system("cls");
-    return choice - 1;
+    return c-1;
 }
 
-int Game::computeDamage(Character &attacker,
-                        Character &defender,
-                        const Skill &skill) {
-    // Handle one-hit delete (NO MANA REQUIRED)
-    if (skill.isOneHitDelete) {
-        cout << "*** ONE-HIT DELETE ACTIVATED! ***\n";
-        cout << "  " << attacker.getName()
-             << " uses " << skill.name
-             << " to erase the opponent in a single strike.\n\n";
-        return defender.getHP(); // enough to bring HP to 0
+int Game::computeDamage(Character& atk, Character& def, const Skill& s) {
+    // ONE HIT DELETE
+    if (s.isOneHitDelete) {
+        cout << "*** ONE HIT DELETE ACTIVATED! ***\n";
+        return def.getHP();
     }
 
-    int base = attacker.getBaseDamage();
-    int randomBonus = getRandomInt(-3, 5);
-    int damage = base + randomBonus;
+    bool basic = (s.name == BASIC_ATTACK.name);
 
-    cout << "  Damage roll: base " << base
-         << " + random " << randomBonus
-         << " = " << damage << " before passives.\n";
+    int base = atk.getBaseDamage();
+    int rnd = getRandomInt(-3, 5);
+    int dmg = base + rnd;
 
-    // Passives
-    if (attacker.getName() == "Arnold") {
-        if (getRandomInt(1, 100) <= 25) {
-            cout << "  Passive triggered: Romantic Aura! Extra 5 damage.\n";
-            damage += 5;
-            attacker.heal(5);
-            cout << "  " << attacker.getName()
-                 << " heals 5 HP from his charm.\n";
+    if (!basic)
+        dmg += s.manaCost;
+
+    // PASSIVES
+    if (atk.getName() == "Arnold") {
+        if (getRandomInt(1,100) <= 25) {
+            cout << "Romantic Aura! +5 dmg + heal 5.\n";
+            dmg += 5;
+            atk.heal(5);
         }
-    } else if (attacker.getName() == "Kyle") {
-        if (getRandomInt(1, 100) <= 20) {
-            cout << "  Passive triggered: Combo Master! Extra hit.\n";
-            damage *= 2;
+    }
+    else if (atk.getName() == "Kyle") {
+        if (getRandomInt(1,100) <= 20) {
+            cout << "Combo Master! DOUBLE DAMAGE!\n";
+            dmg *= 2;
         }
-    } else if (attacker.getName() == "Laurence") {
-        if (defender.getHP() < 40) {
-            cout << "  Passive triggered: Relentless! +5 damage.\n";
-            damage += 5;
+    }
+    else if (atk.getName() == "Laurence") {
+        if (def.getHP() < 40) {
+            cout << "Relentless! +5 dmg.\n";
+            dmg += 5;
         }
-    } else if (attacker.getName() == "Timothy") {
-        if (getRandomInt(1, 100) <= 30) {
-            cout << "  Passive triggered: Mind Games! Extra 5 psychic damage.\n";
-            damage += 5;
+    }
+    else if (atk.getName() == "Timothy") {
+        if (getRandomInt(1,100) <= 30) {
+            cout << "Mind Games! +5 dmg.\n";
+            dmg += 5;
         }
-    } else if (attacker.getName() == "Rolando") {
-        if (getRandomInt(1, 100) <= 25) {
-            cout << "  Passive triggered: Galactic Fury! +5 damage.\n";
-            damage += 5;
+    }
+    else if (atk.getName() == "Rolando") {
+        if (getRandomInt(1,100) <= 25) {
+            cout << "Galactic Fury! +5 dmg.\n";
+            dmg += 5;
         }
     }
 
-    if (damage < 0) {
-        damage = 0;
-    }
+    if (dmg < 0) dmg = 0;
 
-    cout << "  Final damage after passives: " << damage << "\n\n";
-    return damage;
+    cout << "Final damage: " << dmg << "\n\n";
+    return dmg;
 }
 
-bool Game::handleLowHP(Character &ch,
-                       int playerNumber,
-                       GameMode mode,
-                       bool isHuman) {
-    (void)mode; // not used now, but kept for future
+bool Game::handleLowHP(Character& c, int num, GameMode m, bool human) {
+    (void)m; // not used for now
 
-    if (!isHuman) {
-        return true; // Computer never surrenders
-    }
+    if (!human) return true;
 
-    if (ch.getHP() <= 15 && ch.getHP() > 0) {
-        cout << "\nWarning: Player " << playerNumber
-             << " has only " << ch.getHP() << " HP left.\n";
-        cout << "Do you want to continue the battle or surrender?\n";
-        cout << "  1. Continue\n";
-        cout << "  2. Surrender\n";
-        cout << "Choose: ";
+    if (c.getHP() <= 15 && c.getHP() > 0) {
+        cout << "Player " << num << " only has " << c.getHP() << " HP left.\n";
+        cout << "Continue or surrender?\n";
+        cout << "1. Continue\n";
+        cout << "2. Surrender\n";
 
         int choice;
         if (!(cin >> choice)) {
@@ -442,39 +525,99 @@ bool Game::handleLowHP(Character &ch,
         }
 
         if (choice == 2) {
-            cout << "\nPlayer " << playerNumber << " has surrendered!\n\n";
+            cout << "Player " << num << " surrendered!\n";
             return false;
         }
     }
+
     return true;
 }
 
+// ===========================================
+// CHARACTER SELECTION
+// ===========================================
+
+Character Game::chooseCharacter(int playerNumber, bool showGrudges, int forbiddenIndex) {
+    while (true) {
+        clearScreen();
+        cout << "===== PLAYER " << playerNumber << " — CHOOSE YOUR CHARACTER =====\n\n";
+
+        for (size_t i = 0; i < roster.size(); i++) {
+            if ((int)i == forbiddenIndex)
+                cout << i + 1 << ". " << roster[i].getName() << " (UNAVAILABLE)\n";
+            else
+                cout << i + 1 << ". " << roster[i].getName() << "\n";
+        }
+
+        cout << roster.size() + 1 << ". Back\n\n";
+
+        int choice;
+        cout << "Enter choice: ";
+
+        if (!(cin >> choice)) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            continue;
+        }
+
+        // Back option (fallback)
+        if (choice == (int)roster.size() + 1)
+            return roster[0];
+
+        if (choice >= 1 && choice <= (int)roster.size()) {
+            int index = choice - 1;
+
+            if (index == forbiddenIndex) {
+                cout << "That character is unavailable. Choose another.\n";
+                Sleep(1000);
+                continue;
+            }
+
+            clearScreen();
+            displayCharacterDetails(index);
+
+            if (showGrudges) {
+                cout << "\nThis character holds grudges against: "
+                     << roster[index].getGrudge() << "\n\n";
+            }
+
+            cout << "Confirm select? (yes/no): ";
+            string confirm;
+            cin >> confirm;
+            for (char &c : confirm) c = static_cast<char>(tolower(c));
+
+            if (confirm == "yes")
+                return roster[index];
+        }
+        else {
+            cout << "Invalid choice.\n";
+            Sleep(800);
+        }
+    }
+}
+
+// ===========================================
+// PVP MODE
+// ===========================================
+
 void Game::playPVP() {
     clearScreen();
-
     cout << "=============== PLAYER VS PLAYER ===============\n\n";
 
     Character p1 = chooseCharacter(1, true, -1);
 
-    // Find index of Player 1's character in roster so Player 2 can't pick it
-    int forbiddenIndex = -1;
-    for (size_t i = 0; i < roster.size(); ++i) {
-        if (roster[i].getName() == p1.getName() &&
-            roster[i].getTitle() == p1.getTitle()) {
-            forbiddenIndex = static_cast<int>(i);
-            break;
-        }
+    int forbidden = -1;
+    for (size_t i = 0; i < roster.size(); i++) {
+        if (roster[i].getName() == p1.getName())
+            forbidden = (int)i;
     }
 
-    Character p2 = chooseCharacter(2, true, forbiddenIndex);
+    Character p2 = chooseCharacter(2, true, forbidden);
 
-    int p1Wins = 0;
-    int p2Wins = 0;
-    const int roundsToWin = 3;
+    int w1 = 0, w2 = 0;
+    const int winGoal = 3;
 
-    for (int round = 1;
-         round <= 5 && p1Wins < roundsToWin && p2Wins < roundsToWin;
-         ++round) {
+    for (int round = 1; round <= 5 && w1 < winGoal && w2 < winGoal; round++) {
 
         p1.resetForNewRound();
         p2.resetForNewRound();
@@ -482,95 +625,65 @@ void Game::playPVP() {
         clearScreen();
         cout << "================= ROUND " << round << " =================\n\n";
 
-        bool roundOver = false;
+        while (p1.isAlive() && p2.isAlive()) {
+            cout << "STATUS:\n";
+            cout << "P1: " << p1.getName() << " HP: " << p1.getHP() << " Mana: " << p1.getMana() << "\n";
+            cout << "P2: " << p2.getName() << " HP: " << p2.getHP() << " Mana: " << p2.getMana() << "\n\n";
 
-        while (p1.isAlive() && p2.isAlive() && !roundOver) {
-
-            cout << "STATUS\n";
-            cout << "  Player 1: " << p1.getName()
-                 << "  HP: " << p1.getHP()
-                 << "  Mana: " << p1.getMana() << "\n";
-            cout << "  Player 2: " << p2.getName()
-                 << "  HP: " << p2.getHP()
-                 << "  Mana: " << p2.getMana() << "\n\n";
-
-            // Player 1 turn
+            // P1
             if (!handleLowHP(p1, 1, GameMode::PVP, true)) {
-                p2Wins++;
-                roundOver = true;
+                w2++;
                 break;
             }
 
-            cout << "------------- PLAYER 1 TURN -------------\n\n";
-            int skillIndex1 = chooseSkill(p1);
-            const Skill &s1 = p1.getSkills()[skillIndex1];
+            cout << "--- PLAYER 1 TURN ---\n";
+            int i1 = chooseSkill(p1);
+            const Skill& s1 = p1.getSkills()[i1];
 
-            if (p1.getMana() < s1.manaCost) {
-                cout << "Not enough mana for " << s1.name
-                     << ". Using basic attack instead.\n\n";
-            } else {
-                p1.useMana(s1.manaCost);
-            }
+            const Skill* use1 = &s1;
+            if (!s1.isOneHitDelete && p1.getMana() < s1.manaCost) {
+                cout << "Not enough mana! Using basic attack.\n";
+                use1 = &BASIC_ATTACK;
+            } else p1.useMana(s1.manaCost);
 
-            int dmg1 = computeDamage(p1, p2, s1);
-            cout << "Player 1 uses " << s1.name
-                 << " and deals " << dmg1 << " damage!\n\n";
+            int dmg1 = computeDamage(p1, p2, *use1);
             p2.takeDamage(dmg1);
 
-            cout << "Remaining HP and Mana:\n";
-            cout << "  Player 1 - HP: " << p1.getHP()
-                 << " | Mana: " << p1.getMana() << "\n";
-            cout << "  Player 2 - HP: " << p2.getHP()
-                 << " | Mana: " << p2.getMana() << "\n\n";
+            if (!p2.isAlive()) break;
 
-            if (!p2.isAlive()) {
-                break;
-            }
-
-            // Player 2 turn
+            // P2
             if (!handleLowHP(p2, 2, GameMode::PVP, true)) {
-                p1Wins++;
-                roundOver = true;
+                w1++;
                 break;
             }
 
-            cout << "------------- PLAYER 2 TURN -------------\n\n";
-            int skillIndex2 = chooseSkill(p2);
-            const Skill &s2 = p2.getSkills()[skillIndex2];
+            cout << "--- PLAYER 2 TURN ---\n";
+            int i2 = chooseSkill(p2);
+            const Skill& s2 = p2.getSkills()[i2];
 
-            if (p2.getMana() < s2.manaCost) {
-                cout << "Not enough mana for " << s2.name
-                     << ". Using basic attack instead.\n\n";
-            } else {
-                p2.useMana(s2.manaCost);
-            }
+            const Skill* use2 = &s2;
+            if (!s2.isOneHitDelete && p2.getMana() < s2.manaCost) {
+                cout << "Not enough mana! Using basic attack.\n";
+                use2 = &BASIC_ATTACK;
+            } else p2.useMana(s2.manaCost);
 
-            int dmg2 = computeDamage(p2, p1, s2);
-            cout << "Player 2 uses " << s2.name
-                 << " and deals " << dmg2 << " damage!\n\n";
+            int dmg2 = computeDamage(p2, p1, *use2);
             p1.takeDamage(dmg2);
-
-            cout << "Remaining HP and Mana:\n";
-            cout << "  Player 1 - HP: " << p1.getHP()
-                 << " | Mana: " << p1.getMana() << "\n";
-            cout << "  Player 2 - HP: " << p2.getHP()
-                 << " | Mana: " << p2.getMana() << "\n\n";
         }
 
         if (p1.isAlive() && !p2.isAlive()) {
-            cout << "Player 1 wins Round " << round << "!\n\n";
-            p1Wins++;
-        } else if (!p1.isAlive() && p2.isAlive()) {
-            cout << "Player 2 wins Round " << round << "!\n\n";
-            p2Wins++;
+            cout << "Player 1 wins round " << round << "!\n";
+            w1++;
+        }
+        else if (p2.isAlive() && !p1.isAlive()) {
+            cout << "Player 2 wins round " << round << "!\n";
+            w2++;
         }
 
-        cout << "Scoreboard:\n";
-        cout << "  Player 1: " << p1Wins << " wins\n";
-        cout << "  Player 2: " << p2Wins << " wins\n\n";
+        cout << "Score: P1 = " << w1 << " | P2 = " << w2 << "\n\n";
 
-        if (round < 5 && p1Wins < roundsToWin && p2Wins < roundsToWin) {
-            cout << "Press Enter to proceed to the next round...";
+        if (round < 5 && w1 < winGoal && w2 < winGoal) {
+            cout << "Press Enter to continue...";
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
             cin.get();
             clearScreen();
@@ -578,138 +691,127 @@ void Game::playPVP() {
     }
 
     cout << "================ MATCH RESULT ================\n\n";
-    if (p1Wins > p2Wins) {
-        cout << "Player 1 is the champion of Galactica Academy!\n\n";
-    } else if (p2Wins > p1Wins) {
-        cout << "Player 2 is the champion of Galactica Academy!\n\n";
-    } else {
-        cout << "It ends in a cosmic draw.\n\n";
+    string winner;
+    if (w1 > w2) {
+        cout << "Player 1 is the champion!\n";
+        winner = p1.getName();
+    }
+    else if (w2 > w1) {
+        cout << "Player 2 is the champion!\n";
+        winner = p2.getName();
+    }
+    else {
+        cout << "The battle ends in a draw.\n";
+        winner = "Draw";
     }
 
-    cout << "Press Enter to return to the main menu...";
+    using namespace std::chrono;
+    MatchResult mr;
+    mr.mode = "PVP";
+    mr.p1_char = p1.getName();
+    mr.p2_char = p2.getName();
+    mr.winner_name = winner;
+    mr.score = to_string(w1) + "-" + to_string(w2);
+    mr.timestamp = duration_cast<milliseconds>(
+        system_clock::now().time_since_epoch()
+    ).count();
+
+    history.push_back(mr);
+    if (history.size() > MAX_HISTORY_CAPACITY)
+        history.erase(history.begin());
+
+    saveMatchHistory();
+
+    cout << "\nPress Enter...";
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
     cin.get();
     clearScreen();
 }
+
+// ===========================================
+// PVC MODE
+// ===========================================
 
 void Game::playPVC() {
     clearScreen();
-
     cout << "============= PLAYER VS COMPUTER =============\n\n";
 
-    // Bios only, no grudges in PVC
-    Character player = chooseCharacter(1, false, -1);
+    Character p = chooseCharacter(1, false, -1);
 
-    int aiIndex = getRandomInt(0, static_cast<int>(roster.size()) - 1);
-    Character computer = roster[aiIndex];
+    int aiIndex = getRandomInt(0, (int)roster.size() - 1);
+    Character bot = roster[aiIndex];
 
-    int playerWins = 0;
-    int computerWins = 0;
-    const int roundsToWin = 3;
+    int pw = 0, cw = 0;
+    const int winGoal = 3;
 
-    cout << "The Computer has appeared as:\n\n";
-    cout << "  " << computer.getName()
-         << " " << computer.getTitle() << "\n\n";
-    cout << "Press Enter to begin the trial...";
+    cout << "Computer chosen: " << bot.getName() << " " << bot.getTitle() << "\n";
+    cout << "Press Enter to begin...";
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
     cin.get();
 
-    for (int round = 1;
-         round <= 5 && playerWins < roundsToWin && computerWins < roundsToWin;
-         ++round) {
+    for (int r = 1; r <= 5 && pw < winGoal && cw < winGoal; r++) {
 
-        player.resetForNewRound();
-        computer.resetForNewRound();
+        p.resetForNewRound();
+        bot.resetForNewRound();
 
-        // Boost Computer HP to 200 each round
-        computer.setMaxHP(200);
-        computer.setHP(200);
+        bot.setMaxHP(200);
+        bot.setHP(200);
 
         clearScreen();
-        cout << "================= ROUND " << round << " =================\n\n";
+        cout << "================= ROUND " << r << " =================\n\n";
 
-        while (player.isAlive() && computer.isAlive()) {
+        while (p.isAlive() && bot.isAlive()) {
 
-            cout << "STATUS\n";
-            cout << "  You: " << player.getName()
-                 << "  HP: " << player.getHP()
-                 << "  Mana: " << player.getMana() << "\n";
-            cout << "  Computer: " << computer.getName()
-                 << "  HP: " << computer.getHP()
-                 << "  Mana: " << computer.getMana() << "\n\n";
+            cout << "STATUS:\n";
+            cout << "You: " << p.getName() << " HP: " << p.getHP() << " Mana: " << p.getMana() << "\n";
+            cout << "Bot: " << bot.getName() << " HP: " << bot.getHP() << " Mana: " << bot.getMana() << "\n\n";
 
-            // Player turn (can surrender)
-            if (!handleLowHP(player, 1, GameMode::PVC, true)) {
-                computerWins++;
+            if (!handleLowHP(p, 1, GameMode::PVC, true)) {
+                cw++;
                 break;
             }
 
-            cout << "------------- YOUR TURN -------------\n\n";
-            int skillIndexPlayer = chooseSkill(player);
-            const Skill &sp = player.getSkills()[skillIndexPlayer];
+            cout << "--- YOUR TURN ---\n";
+            int psi = chooseSkill(p);
+            const Skill& ps = p.getSkills()[psi];
 
-            if (player.getMana() < sp.manaCost) {
-                cout << "Not enough mana for " << sp.name
-                     << ". Using basic attack instead.\n\n";
-            } else {
-                player.useMana(sp.manaCost);
-            }
+            const Skill* useP = &ps;
+            if (!ps.isOneHitDelete && p.getMana() < ps.manaCost)
+                useP = &BASIC_ATTACK;
+            else
+                p.useMana(ps.manaCost);
 
-            int dmgP = computeDamage(player, computer, sp);
-            cout << "You use " << sp.name
-                 << " and deal " << dmgP << " damage!\n\n";
-            computer.takeDamage(dmgP);
+            int pdmg = computeDamage(p, bot, *useP);
+            bot.takeDamage(pdmg);
 
-            cout << "Remaining HP and Mana:\n";
-            cout << "  You      - HP: " << player.getHP()
-                 << " | Mana: " << player.getMana() << "\n";
-            cout << "  Computer - HP: " << computer.getHP()
-                 << " | Mana: " << computer.getMana() << "\n\n";
+            if (!bot.isAlive()) break;
 
-            if (!computer.isAlive()) {
-                break;
-            }
+            cout << "--- BOT TURN ---\n";
+            int aiS = getRandomInt(0, (int)bot.getSkills().size() - 1);
+            const Skill& as = bot.getSkills()[aiS];
 
-            // Computer turn (no surrender)
-            cout << "------------- COMPUTER TURN -------------\n\n";
-            int aiSkillIndex = getRandomInt(
-                0,
-                static_cast<int>(computer.getSkills().size()) - 1
-            );
-            const Skill &sa = computer.getSkills()[aiSkillIndex];
+            const Skill* useA = &as;
+            if (!as.isOneHitDelete && bot.getMana() < as.manaCost)
+                useA = &BASIC_ATTACK;
+            else
+                bot.useMana(as.manaCost);
 
-            if (computer.getMana() < sa.manaCost) {
-                // basic attack, no mana usage
-            } else {
-                computer.useMana(sa.manaCost);
-            }
-
-            int dmgA = computeDamage(computer, player, sa);
-            cout << "Computer uses " << sa.name
-                 << " and deals " << dmgA << " damage!\n\n";
-            player.takeDamage(dmgA);
-
-            cout << "Remaining HP and Mana:\n";
-            cout << "  You      - HP: " << player.getHP()
-                 << " | Mana: " << player.getMana() << "\n";
-            cout << "  Computer - HP: " << computer.getHP()
-                 << " | Mana: " << computer.getMana() << "\n\n";
+            int admg = computeDamage(bot, p, *useA);
+            p.takeDamage(admg);
         }
 
-        if (player.isAlive() && !computer.isAlive()) {
-            cout << "You win Round " << round << "!\n\n";
-            playerWins++;
-        } else if (!player.isAlive() && computer.isAlive()) {
-            cout << "Computer wins Round " << round << "!\n\n";
-            computerWins++;
+        if (p.isAlive() && !bot.isAlive()) {
+            cout << "You win round " << r << "!\n";
+            pw++;
+        } else if (bot.isAlive() && !p.isAlive()) {
+            cout << "Bot wins round " << r << "!\n";
+            cw++;
         }
 
-        cout << "Scoreboard:\n";
-        cout << "  You: " << playerWins << " wins\n";
-        cout << "  Computer: " << computerWins << " wins\n\n";
+        cout << "Score: You = " << pw << " | Bot = " << cw << "\n\n";
 
-        if (round < 5 && playerWins < roundsToWin && computerWins < roundsToWin) {
-            cout << "Press Enter to proceed to the next round...";
+        if (r < 5 && pw < winGoal && cw < winGoal) {
+            cout << "Press Enter...";
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
             cin.get();
             clearScreen();
@@ -717,85 +819,58 @@ void Game::playPVC() {
     }
 
     cout << "================ MATCH RESULT ================\n\n";
-    if (playerWins > computerWins) {
-        cout << "You have passed the Galactica trial against the Computer!\n\n";
-    } else if (computerWins > playerWins) {
-        cout << "The Computer has outplayed you this time.\n\n";
-    } else {
-        cout << "The stars show a balanced result. It's a draw.\n\n";
+    string winner;
+    if (pw > cw) {
+        cout << "You are the champion!\n";
+        winner = p.getName();
+    }
+    else if (cw > pw) {
+        cout << "The Computer wins!\n";
+        winner = bot.getName();
+    }
+    else {
+        cout << "Match ends in a draw.\n";
+        winner = "Draw";
     }
 
-    cout << "Press Enter to return to the main menu...";
+    using namespace std::chrono;
+    MatchResult mr;
+    mr.mode = "PVC";
+    mr.p1_char = p.getName();
+    mr.p2_char = bot.getName();
+    mr.winner_name = winner;
+    mr.score = to_string(pw) + "-" + to_string(cw);
+    mr.timestamp = duration_cast<milliseconds>(
+        system_clock::now().time_since_epoch()
+    ).count();
+
+    history.push_back(mr);
+    if (history.size() > MAX_HISTORY_CAPACITY)
+        history.erase(history.begin());
+
+    saveMatchHistory();
+
+    cout << "\nPress Enter...";
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
     cin.get();
     clearScreen();
 }
 
+// ===========================================
+// CREDITS SCREEN
+// ===========================================
 
-void Game::viewAllCharacters() {
-    while (true) {
-        clearScreen();
-        cout << "===== VIEW ALL CHARACTERS =====\n\n";
-
-        for (size_t i = 0; i < roster.size(); i++) {
-            cout << (i + 1) << ". " << roster[i].getName() << "\n";
-        }
-
-        cout << (roster.size() + 1) << ". Back\n\n";
-
-        cout << "Choose a character to view: ";
-        int choice;
-        cin >> choice;
-
-        if (cin.fail()) {
-            cin.clear();
-            cin.ignore(9999, '\n');
-            continue;
-        }
-
-        if (choice == roster.size() + 1) {
-            clearScreen(); // <-- Add this to clear the menu before exiting
-            return;
-        }
-
-        if (choice >= 1 && choice <= (int)roster.size()) {
-            displayCharacterDetails(choice - 1);
-        }
-    }
-}
-
-
-void Game::displayCharacterDetails(int index) {
-    clearScreen();
-
-    Character &c = roster[index];  // Use reference to avoid copying
-
-    cout << "=========================================\n"; 
-    cout << "            CHARACTER PROFILE            \n"; 
-    cout << "=========================================\n\n";
-    cout << "Name : " << c.getName() << "\n";
-    cout << "Title: " << c.getTitle() << "\n";
-    cout << "HP   : " << c.getHP() << " / " << c.getMaxHP() << "\n";
-    cout << "Mana : " << c.getMana() << " / " << c.getMaxMana() << "\n";
-    cout << "Base Damage     : " << c.getBaseDamage() << "\n";
-    cout << "Passive Ability : " << c.getPassiveDesc() << "\n";
-    cout << "Bio             : " << c.getBio() << "\n";
-    cout << "Grudges         : " << c.getGrudge() << "\n\n";
-
-    cout << "Press Enter to go back...";
-    cin.ignore(numeric_limits<streamsize>::max(), '\n');
-    cin.get();
-}
 void Game::showCredits() {
     clearScreen();
 
     string credits[] = {
         "================ CREDITS ================",
-        "Game Design     : Your Name",
-        "Programming     : Your Name",
-        "Artwork         : Your Name / ASCII Art Credits",
-        "Story & Lore    : Your Name",
-        "Special Thanks  : Friends / Mentors / Inspiration",
+        "Game Design     : Dave Laurence R. Repe",
+        "Programming     : Arnold Michael P. Tabada",
+        "                  Nirhevn Kyle Dialimas",
+        "Artwork         : John Timothy Cabuguas",
+        "Story & Lore    : John Timothy Cabuguas",
+        "Special Thanks  : Rolando Supremo",
         "========================================",
         "",
         "Thank you for playing Galactica Campus Brawl!",
@@ -804,19 +879,21 @@ void Game::showCredits() {
         "Press Enter to go back..."
     };
 
-    int totalLines = sizeof(credits) / sizeof(credits[0]);
+    int total = sizeof(credits) / sizeof(credits[0]);
+    int delay = 80;
 
-    // Scroll effect
-    for (int i = 0; i < totalLines + 10; i++) { // +10 adds blank lines at the end
+    for (int i = 0; i < total + 10; i++) {
         clearScreen();
-        int start = max(0, i - 10); // Show last 10 lines
-        for (int j = start; j <= i && j < totalLines; j++) {
+        int start = max(0, i - 10);
+
+        for (int j = start; j <= i && j < total; j++) {
             cout << credits[j] << "\n";
         }
-        this_thread::sleep_for(chrono::milliseconds(400)); // Adjust speed here
+
+        Sleep(delay);
     }
 
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
     cin.get();
-    clearScreen(); // Return to main menu cleanly
+    clearScreen();
 }
