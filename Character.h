@@ -3,16 +3,16 @@
 
 #include <string>
 #include <vector>
-#include "Skill.h" // Includes the Skill class/struct
+#include "Skill.h"
 
 class Character {
 private:
     std::string name;
     std::string title;
     int maxHP;
-    int currentHP;
+    int hp;
     int maxMana;
-    int currentMana;
+    int mana;
     int baseDamage;
     std::string passiveDesc;
     std::string bio;
@@ -20,34 +20,39 @@ private:
     std::vector<Skill> skills;
 
 public:
-    // Constructors (Declarations)
-    Character(); 
-    Character(const std::string& name, const std::string& title, int maxHP, int maxMana, 
-              int baseDamage, const std::string& passiveDesc, 
-              const std::string& bio, const std::string& grudge);
+    Character();
+    Character(const std::string &name,
+              const std::string &title,
+              int maxHP,
+              int maxMana,
+              int baseDamage,
+              const std::string &passiveDesc,
+              const std::string &bio,
+              const std::string &grudge);
 
-    // Getters (Declarations matching C.cpp return types)
-    const std::string& getName() const;
-    const std::string& getTitle() const;
-    int getMaxHP() const;
-    int getHP() const;
-    int getMaxMana() const;
-    int getMana() const;
-    int getBaseDamage() const;
-    const std::string& getPassiveDesc() const;
-    const std::string& getBio() const;
-    const std::string& getGrudge() const;
-    const std::vector<Skill>& getSkills() const;
-    bool isAlive() const;
-
-    // Setters / Combat Methods (Declarations)
-    void setMaxHP(int newMax);
-    void setHP(int newHP);
-    void addSkill(const Skill& skill);
-    void takeDamage(int damage);
-    void useMana(int manaUsed);
-    void heal(int amount);
     void resetForNewRound();
+
+    const std::string &getName() const;
+    const std::string &getTitle() const;
+    int getHP() const;
+    int getMana() const;
+    int getMaxHP() const;
+    int getMaxMana() const;
+    int getBaseDamage() const;
+    const std::string &getPassiveDesc() const;
+    const std::vector<Skill> &getSkills() const;
+
+    const std::string &getBio() const;
+    const std::string &getGrudge() const;
+
+    void setHP(int value);
+    void setMaxHP(int value);
+
+    void addSkill(const Skill &skill);
+    void takeDamage(int amount);
+    void heal(int amount);
+    void useMana(int amount);
+    bool isAlive() const;
 };
 
-#endif // CHARACTER_H
+#endif
