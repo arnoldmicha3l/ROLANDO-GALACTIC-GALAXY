@@ -6,6 +6,8 @@
 #include <string>
 #include <random>
 #include <chrono>
+#include <functional> // <-- add this
+#include <unordered_map> // <-- add this
 
 // Forward declarations
 class Character;

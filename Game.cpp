@@ -15,6 +15,8 @@
 #include <vector>
 #include <algorithm>
 #include <chrono>
+#include <functional>      // for std::function
+#include <unordered_map>   // for menu map
 
 #include "Game.h"
 #include "Character.h"
@@ -228,8 +230,18 @@ bool Game::confirmExit() {
 // ===========================================
 
 void Game::mainMenu() {
+    unordered_map<int, function<void()>> menuActions = {
+        {1, [this]{ PlaySound(TEXT("battle.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP); playPVP(); }},
+        {2, [this]{ PlaySound(TEXT("battle.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP); playPVC(); }},
+        {3, [this]{ viewAllCharacters(); }},
+        {4, [this]{ PlaySound(TEXT("credits.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP); showCredits(); }},
+        {5, [this]{ viewMatchHistory(); }},
+        {6, [this]{ if(confirmExit()){ clearScreen(); exit(0); } }}
+    };
+
     while (true) {
         PlaySound(TEXT("picking.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
+
         cout << "================ MAIN MENU ================\n";
         cout << " 1. Player vs Player\n";
         cout << " 2. Player vs Computer\n";
@@ -247,109 +259,80 @@ void Game::mainMenu() {
             clearScreen();
             continue;
         }
-        PlaySound(NULL, 0, 0);
+
         clearScreen();
+        PlaySound(NULL, 0, 0);
 
-
-        if (choice == 1) {
-            PlaySound(TEXT("battle.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
-            playPVP();
-        } else if (choice == 2) {
-             PlaySound(TEXT("battle.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
-            playPVC();
-        } else if (choice == 3) {
-            viewAllCharacters();
-        } else if (choice == 4) {
-            PlaySound(TEXT("credits.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
-            showCredits();
-        }else if(choice == 5){
-            viewMatchHistory();
-        } else if (choice == 6) {
-            if (confirmExit()) {
-                clearScreen(); 
-                cout << "Exiting Galactica Campus Brawl...\n";
-                cout << "See you next orbit, cadet.\n\n";
-                break;
-            } else {
-                clearScreen();
-            }
+        auto it = menuActions.find(choice);
+        if (it != menuActions.end()) {
+            it->second();
         } else {
             cout << "Invalid choice. Please try again.\n\n";
         }
     }
 }
 
+
 // ===========================================
 // ROSTER SETUP
 // ===========================================
 
 void Game::initRoster() {
-    // Arnold
-    Character arnold(
-        "Arnold", "The Lover Boy",
-        100, 80, 18,
-        "Romantic Aura: Heals 5 HP whenever his special charm lands.",
-        "Arnold used to write love letters to half the class...",
-        "Arnold holds grudges against Kyle, Timothy, and Rolando."
-    );
-    arnold.addSkill({"Heart Shot", "A focused blast of pure charm.", 10, false});
-    arnold.addSkill({"Romantic Shield", "Softens incoming blows.", 12, false});
-    arnold.addSkill({"Starlit Serenade", "A cosmic love song.", 18, false});
-    arnold.addSkill({"Love Delete", "Deletes the enemy.", 0, true});
+    struct CharacterData {
+        std::string name, title, bio, grudge;
+        int hp, mana, baseDmg;
+        std::vector<Skill> skills;
+    };
 
-    // Kyle
-    Character kyle(
-        "Kyle", "The Master Beater",
-        120, 60, 20,
-        "Combo Master: 20% chance to double attack.",
-        "Kyle dominates every combat exam.",
-        "Kyle cannot stand Arnold's drama, Laurence's attitude, and Timothy's trash talk."
-    );
-    kyle.addSkill({"Meteor Jab", "Fast galactic punches.", 10, false});
-    kyle.addSkill({"Asteroid Uppercut", "Launches rivals.", 15, false});
-    kyle.addSkill({"Orbit Breaker", "Breaks enemy rhythm.", 20, false});
-    kyle.addSkill({"Galaxy Eraser", "One-hit erase.", 0, true});
+    std::vector<CharacterData> data = {
+        {"Arnold", "The Lover Boy", 
+         "Arnold used to write love letters to half the class...", 
+         "Arnold holds grudges against Kyle, Timothy, and Rolando.", 
+         100, 80, 18,
+         { {"Heart Shot", "A focused blast of pure charm.", 10, false},
+           {"Romantic Shield", "Softens incoming blows.", 12, false},
+           {"Starlit Serenade", "A cosmic love song.", 18, false},
+           {"Love Delete", "Deletes the enemy.", 0, true} }},
+        {"Kyle", "The Master Beater",
+         "Kyle dominates every combat exam.",
+         "Kyle cannot stand Arnold's drama, Laurence's attitude, and Timothy's trash talk.",
+         120, 60, 20,
+         { {"Meteor Jab", "Fast galactic punches.", 10, false},
+           {"Asteroid Uppercut", "Launches rivals.", 15, false},
+           {"Orbit Breaker", "Breaks enemy rhythm.", 20, false},
+           {"Galaxy Eraser", "One-hit erase.", 0, true} }},
+        {"Laurence", "The Bitch Slayer",
+         "Laurence was once quiet, until everyone pushed too far.",
+         "Laurence has history with everyone and never forgets a slight.",
+         110, 90, 17,
+         { {"Nebula Slash", "Sharp space strike.", 8, false},
+           {"Supernova Spin", "Starfire spin.", 14, false},
+           {"Void Pressure", "Gravity crush.", 18, false},
+           {"Oblivion Cut", "Dimensional delete.", 0, true} }},
+        {"Timothy", "The Trash Talker",
+         "Timothy starts fights with words, not punches.",
+         "He roasts Arnold's heartbreaks, Kyle's ego, and Laurence's temper.",
+         100, 100, 15,
+         { {"Verbal Meteor", "Insults drop like rocks.", 8, false},
+           {"Psychic Echo", "Painful echoes in the mind.", 12, false},
+           {"Galaxy Roast", "Burns pride and HP.", 20, false},
+           {"Silence of Space", "Cursed delete.", 0, true} }},
+        {"Rolando", "Galactic Slayer",
+         "Rumored to clear simulations alone.",
+         "He hates Kyle's bragging and Timothy's comments.",
+         130, 70, 19,
+         { {"Comet Strike", "Comet impact.", 10, false},
+           {"Black Hole Crash", "Pull + crush.", 15, false},
+           {"Starfall Barrage", "Starlight barrage.", 20, false},
+           {"Cosmic Delete", "Instant erase.", 0, true} }}
+    };
 
-    // Laurence
-    Character laurence(
-        "Laurence", "The Bitch Slayer",
-        110, 90, 17,
-        "Relentless: +5 damage vs low HP opponents.",
-        "Laurence was once quiet, until everyone pushed too far.",
-        "Laurence has history with everyone and never forgets a slight."
-    );
-    laurence.addSkill({"Nebula Slash", "Sharp space strike.", 8, false});
-    laurence.addSkill({"Supernova Spin", "Starfire spin.", 14, false});
-    laurence.addSkill({"Void Pressure", "Gravity crush.", 18, false});
-    laurence.addSkill({"Oblivion Cut", "Dimensional delete.", 0, true});
-
-    // Timothy
-    Character timothy(
-        "Timothy", "The Trash Talker",
-        100, 100, 15,
-        "Mind Games: 30% extra psychic damage chance.",
-        "Timothy starts fights with words, not punches.",
-        "He roasts Arnold's heartbreaks, Kyle's ego, and Laurence's temper."
-    );
-    timothy.addSkill({"Verbal Meteor", "Insults drop like rocks.", 8, false});
-    timothy.addSkill({"Psychic Echo", "Painful echoes in the mind.", 12, false});
-    timothy.addSkill({"Galaxy Roast", "Burns pride and HP.", 20, false});
-    timothy.addSkill({"Silence of Space", "Cursed delete.", 0, true});
-
-    // Rolando
-    Character rolando(
-        "Rolando", "Galactic Slayer",
-        130, 70, 19,
-        "Galactic Fury: +5 bonus damage.",
-        "Rumored to clear simulations alone.",
-        "He hates Kyle's bragging and Timothy's comments."
-    );
-    rolando.addSkill({"Comet Strike", "Comet impact.", 10, false});
-    rolando.addSkill({"Black Hole Crash", "Pull + crush.", 15, false});
-    rolando.addSkill({"Starfall Barrage", "Starlight barrage.", 20, false});
-    rolando.addSkill({"Cosmic Delete", "Instant erase.", 0, true});
-
-    roster = { arnold, kyle, laurence, timothy, rolando };
+    roster.clear();
+    for (const auto& d : data) {
+        Character c(d.name, d.title, d.hp, d.mana, d.baseDmg, "", d.bio, d.grudge);
+        for (const auto& s : d.skills) c.addSkill(s);
+        roster.push_back(c);
+    }
 }
 
 // ===========================================
@@ -406,15 +389,15 @@ void Game::displayCharacterDetails(int i) {
     cout << setw(12) << "Base Damage" << ": " << c.getBaseDamage() << "\n\n";
 
     cout << "=== SKILLS ===\n";
-    const auto& s = c.getSkills();
+    const auto& skills = c.getSkills();
 
     int min = c.getBaseDamage() - 3;
     int max = c.getBaseDamage() + 5;
 
-    for (size_t z = 0; z < s.size(); z++) {
-        cout << z+1 << ") " << s[z].name << " (Mana: " << s[z].manaCost << ")\n";
-        cout << "    " << s[z].description << "\n";
-        if (s[z].isOneHitDelete)
+    for (size_t i = 0; i < skills.size(); i++) {
+        cout << i+1 << ") " << skills[i].name << " (Mana: " << skills[i].manaCost << ")\n";
+        cout << "    " << skills[i].description << "\n";
+        if (skills[i].isOneHitDelete)
             cout << "    Damage: ONE-HIT DELETE.\n\n";
         else
             cout << "    Est. Damage: " << min << "–" << max << "\n\n";
