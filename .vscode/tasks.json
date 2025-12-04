@@ -2,26 +2,26 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Build All C++",
+            "label": "Build Game",
             "type": "shell",
-            "command": "g++",
+            "command": "C:/msys64/ucrt64/bin/g++.exe",
             "args": [
-                "-g",
-                "-std=c++11",
-                "*.cpp",
+                "-std=c++17",
+                "main.cpp",
+                "Game.cpp",
+                "Character.cpp",
+                "-lwinmm",
                 "-o",
                 "main.exe"
             ],
             "options": {
-                "cwd": "${workspaceFolder}"
+                "cwd": "C:/Users/Tabada/Documents/ROLANDO-GALACTIC-GALAXY"
             },
-            "problemMatcher": [
-                "$gcc"
-            ],
             "group": {
                 "kind": "build",
                 "isDefault": true
-            }
+            },
+            "problemMatcher": ["$gcc"]
         }
     ]
 }
