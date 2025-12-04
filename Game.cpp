@@ -524,27 +524,45 @@ int Game::computeDamage(Character& atk, Character& def, const Skill& s) {
 }
 
 bool Game::handleLowHP(Character& c, int num, GameMode m, bool human) {
-    (void)m; // not used for now
+    (void)m;
 
     if (!human) return true;
 
     if (c.getHP() <= 15 && c.getHP() > 0) {
-        cout << "Player " << num << " only has " << c.getHP() << " HP left.\n";
-        cout << "Continue or surrender?\n";
-        cout << "1. Continue\n";
-        cout << "2. Surrender\n";
-
         int choice;
-        if (!(cin >> choice)) {
-            cin.clear();
-            cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            return true;
-        }
 
-        if (choice == 2) {
-            cout << "Player " << num << " surrendered!\n";
-            return false;
-        }
+        cout << "\n";
+        cout << "STATUS\n";
+        cout << "Player " << num 
+             << " (" << c.getName() << "): HP: " << c.getHP() << " | Mana: " << c.getMana() << "\n"; 
+        cout << "Warning: Player " << num 
+             << " (" << c.getName() << ") has only " << c.getHP() << " HP left.\n";
+        cout << "Do you want to continue the battle or surrender?\n";
+        
+        cout << " 1. Continue\n";
+        
+        cout << " 2. Surrender\n";
+
+        do {
+            cout << "Choose: ";
+
+            if (cin >> choice) {
+                if (choice == 1) {
+                    clearScreen();
+                    return true;
+                } else if (choice == 2) {
+                    clearScreen();
+                    cout << "Player " << num << " (" << c.getName() << ") has surrendered!\n";
+                    return false;
+                }
+            } else {
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            }
+
+            cout << "Invalid choice. Please select again.\n"; 
+            
+        } while (true);
     }
 
     return true;
@@ -557,11 +575,11 @@ bool Game::handleLowHP(Character& c, int num, GameMode m, bool human) {
 Character Game::chooseCharacter(int playerNumber, bool showGrudges, int forbiddenIndex) {
     while (true) {
         clearScreen();
-        cout << "===== PLAYER " << playerNumber << " — CHOOSE YOUR CHARACTER =====\n\n";
+        cout << "===== PLAYER " << playerNumber << " -- CHOOSE YOUR CHARACTER =====\n\n";
 
         for (size_t i = 0; i < roster.size(); i++) {
             if ((int)i == forbiddenIndex)
-                cout << i + 1 << ". " << roster[i].getName() << " (UNAVAILABLE)\n";
+                cout << i + 1 << ". " << roster[i].getName() << " (ALREADY SELECTED!)\n";
             else
                 cout << i + 1 << ". " << roster[i].getName() << "\n";
         }

@@ -6,8 +6,8 @@
             "type": "cppdbg",
             "request": "launch",
 
-            "program": "C:/Users/Tabada/Documents/ROLANDO-GALACTIC-GALAXY/main.exe",
-            "cwd": "C:/Users/Tabada/Documents/ROLANDO-GALACTIC-GALAXY",
+            "program": "C:/RENCE/ROLANDO-GALACTIC-GALAXY/main.exe",
+            "cwd": "C:/RENCE/ROLANDO-GALACTIC-GALAXY",
 
             "args": [],
             "stopAtEntry": false,
