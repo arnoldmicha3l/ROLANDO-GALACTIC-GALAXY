@@ -538,6 +538,7 @@ bool Game::handleLowHP(Character& c, int num, GameMode m, bool human) {
 // ===========================================
 
 Character Game::chooseCharacter(int playerNumber, bool showGrudges, int forbiddenIndex) {
+    PlaySound(TEXT("picking.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
     while (true) {
         clearScreen();
         cout << "===== PLAYER " << playerNumber << " — CHOOSE YOUR CHARACTER =====\n\n";
