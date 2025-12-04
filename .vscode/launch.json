@@ -2,29 +2,28 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Run Rolando Game",
+            "name": "(gdb) Launch Game",
             "type": "cppdbg",
             "request": "launch",
-
-            "program": "C:/Users/Acer - i5 11th Gen/ROLANDO-GALACTIC-GALAXY-FINAL/main.exe",
-            "cwd": "C:/Users/Acer - i5 11th Gen/ROLANDO-GALACTIC-GALAXY-FINAL",
-
+            // Path to the executable created by tasks.json
+            "program": "${workspaceFolder}/main.exe", 
             "args": [],
             "stopAtEntry": false,
-            "externalConsole": true,
-
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": true, // Opens a separate console window for program I/O
             "MIMode": "gdb",
-            "miDebuggerPath": "C:/msys64/ucrt64/bin/gdb.exe",
-
-            "preLaunchTask": "Build Game",
-
+            // Make sure this path is correct for your MinGW installation
+            "miDebuggerPath": "C:\\mingw64\\bin\\gdb.exe", 
             "setupCommands": [
                 {
-                    "description": "Enable pretty printing",
+                    "description": "Enable pretty-printing for gdb",
                     "text": "-enable-pretty-printing",
                     "ignoreFailures": true
                 }
-            ]
+            ],
+            // IMPORTANT: Runs your custom multi-file build task first
+            "preLaunchTask": "C/C++: g++.exe build all cpp with C++11" 
         }
     ]
 }
