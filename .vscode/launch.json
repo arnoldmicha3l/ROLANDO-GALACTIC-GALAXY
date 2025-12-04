@@ -5,27 +5,26 @@
             "name": "Run Rolando Game",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/main.exe",
+
+            "program": "C:/Users/Tabada/Documents/ROLANDO-GALACTIC-GALAXY/main.exe",
+            "cwd": "C:/Users/Tabada/Documents/ROLANDO-GALACTIC-GALAXY",
+
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
-            "environment": [],
             "externalConsole": true,
-            "MIMode": "gdb",
 
-            // UNIVERSAL debugger path (uses PATH)
-            "miDebuggerPath": "gdb",
+            "MIMode": "gdb",
+            "miDebuggerPath": "C:/msys64/ucrt64/bin/gdb.exe",
+
+            "preLaunchTask": "Build Game",
 
             "setupCommands": [
                 {
-                    "description": "Enable pretty-printing for gdb",
+                    "description": "Enable pretty printing",
                     "text": "-enable-pretty-printing",
                     "ignoreFailures": true
                 }
-            ],
-
-            // Universal preLaunchTask
-            "preLaunchTask": "Build All C++"
+            ]
         }
     ]
 }
