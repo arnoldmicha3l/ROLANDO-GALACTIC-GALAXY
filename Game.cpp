@@ -252,10 +252,10 @@ void Game::mainMenu() {
 
 
         if (choice == 1) {
-            PlaySound(TEXT("battle.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
+            PlaySound(TEXT("picking.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
             playPVP();
         } else if (choice == 2) {
-             PlaySound(TEXT("battle.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
+             PlaySound(TEXT("picking.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
             playPVC();
         } else if (choice == 3) {
             viewAllCharacters();
@@ -631,6 +631,9 @@ void Game::playPVP() {
 
     Character p2 = chooseCharacter(2, true, forbidden);
 
+    // MUSIC: begin battle music AFTER both players are chosen
+    PlaySound(TEXT("battle.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
+
     int w1 = 0, w2 = 0;
     const int winGoal = 3;
 
@@ -647,7 +650,6 @@ void Game::playPVP() {
             cout << "P1: " << p1.getName() << " HP: " << p1.getHP() << " Mana: " << p1.getMana() << "\n";
             cout << "P2: " << p2.getName() << " HP: " << p2.getHP() << " Mana: " << p2.getMana() << "\n\n";
 
-            // P1
             if (!handleLowHP(p1, 1, GameMode::PVP, true)) {
                 w2++;
                 break;
@@ -668,7 +670,6 @@ void Game::playPVP() {
 
             if (!p2.isAlive()) break;
 
-            // P2
             if (!handleLowHP(p2, 2, GameMode::PVP, true)) {
                 w1++;
                 break;
@@ -697,7 +698,7 @@ void Game::playPVP() {
             w2++;
         }
 
-        cout << "Score: P1 = " << w1 << " | P2 = " << w2 << "\n\n";
+        cout << "Score: P1 = " << w1 << " | P2 = " << w2 << "\n\n"; 
 
         if (round < 5 && w1 < winGoal && w2 < winGoal) {
             cout << "Press Enter to continue...";
@@ -720,6 +721,12 @@ void Game::playPVP() {
     else {
         cout << "The battle ends in a draw.\n";
         winner = "Draw";
+    }
+
+    // Stop battle music and play winner sound (no loop) if there is a champion
+    PlaySound(NULL, 0, 0);
+    if (winner != "Draw") {
+        PlaySound(TEXT("winner.wav"), NULL, SND_FILENAME | SND_ASYNC);
     }
 
     using namespace std::chrono;
@@ -762,9 +769,12 @@ void Game::playPVC() {
     const int winGoal = 3;
 
     cout << "Computer chosen: " << bot.getName() << " " << bot.getTitle() << "\n";
-    cout << "Press Enter to begin...";
+    cout << "Press Enter to start the battle...";
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
     cin.get();
+
+    // MUSIC: battle music starts when the fight actually begins
+    PlaySound(TEXT("battle.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
 
     for (int r = 1; r <= 5 && pw < winGoal && cw < winGoal; r++) {
 
@@ -850,6 +860,16 @@ void Game::playPVC() {
         winner = "Draw";
     }
 
+    // Stop battle music and play appropriate result sound
+    PlaySound(NULL, 0, 0);
+    if (pw > cw) {
+        // You win
+        PlaySound(TEXT("winner.wav"), NULL, SND_FILENAME | SND_ASYNC);
+    } else if (cw > pw) {
+        // You are defeated
+        PlaySound(TEXT("defeat.wav"), NULL, SND_FILENAME | SND_ASYNC);
+    }
+
     using namespace std::chrono;
     MatchResult mr;
     mr.mode = "PVC";
@@ -912,5 +932,9 @@ void Game::showCredits() {
 
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
     cin.get();
+
+    // STOP credits music when exiting credits screen
+    PlaySound(NULL, 0, 0);
+
     clearScreen();
 }
