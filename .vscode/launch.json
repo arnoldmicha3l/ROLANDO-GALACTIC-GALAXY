@@ -6,16 +6,15 @@
             "type": "cppdbg",
             "request": "launch",
 
-            "program": "C:/Users/Acer - i5 11th Gen/ROLANDO-GALACTIC-GALAXY-FINAL/main.exe",
-            "cwd": "C:/Users/Acer - i5 11th Gen/ROLANDO-GALACTIC-GALAXY-FINAL",
+            "program": "C:/Users/ASUS/OneDrive/Documents/ROLANDO-GALACTIC-GALAXY2/main.exe",
+            "cwd": "C:/Users/ASUS/OneDrive/Documents/ROLANDO-GALACTIC-GALAXY2",
 
             "args": [],
             "stopAtEntry": false,
             "externalConsole": true,
 
             "MIMode": "gdb",
-            "miDebuggerPath": "C:/msys64/ucrt64/bin/gdb.exe",
-
+            "miDebuggerPath": "C:/mingw64/bin/gdb.exe",
             "preLaunchTask": "Build Game",
 
             "setupCommands": [
