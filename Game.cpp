@@ -262,7 +262,8 @@ void Game::mainMenu() {
             playPVC();
         } else if (choice == 3) {              
             viewAllCharacters();
-        } else if (choice == 4) {              
+        } else if (choice == 4) {  
+            PlaySound(TEXT("intro.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);            
             showCredits();
         }else if(choice == 5){
             viewMatchHistory();
@@ -1044,17 +1045,22 @@ void Game::showCredits() {
     clearScreen();
 
     string credits[] = {
-        "================ CREDITS ================",
-        "Game Design     : Dave Laurence R. Repe",
-        "Programming     : Arnold Michael P. Tabada, Nirhevn kyle Dialimas",
-        "Artwork         : John Timothy Cabuguas",
-        "Story & Lore    : John Timothy Cabuguas ",
-        "Special Thanks  :  For: Rolando Supremo / Mentor: Rolando Supremo  / Inspiration: Rolando Supremo ",
-        "========================================",
-        "",
+       "================ CREDITS ================",
+        "Creator         : Arnold, Kyle",
+        "Debugger/Test   : Dave, Kyle, Arnold",
+        "Story Writer    : Timothy",
+        "Art Director    : Dave",
+        "Additional Idea : Timothy",
+        "Developers      : Arnold, Kyle, Dave, Timothy",
+        "Game Engineer   : Kyle",
+        "Programmer      : Kyle",
+        "Inspiration     : Rolando",
+        "Professor       : Sir Quinn",
+    "========================================",
+    "",
         "Thank you for playing Galactica Campus Brawl!",
         "Hope you enjoyed your adventure!",
-        "",
+    "",
         "Press Enter to go back..."
     };
 
