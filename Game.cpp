@@ -15,8 +15,8 @@
 #include <vector>
 #include <algorithm>
 #include <chrono>
-#include <functional>
-#include <unordered_map>
+#include <functional> // Added in the first snippet
+#include <unordered_map> // Added in the first snippet
 
 #include "Game.h"
 #include "Character.h"
@@ -238,7 +238,7 @@ void Game::mainMenu() {
         {5, [this]{  PlaySound(TEXT("characterselection.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP); viewMatchHistory(); }},
         {6, [this]{ if(confirmExit()){ clearScreen(); exit(0); } }}
     };
-    
+
     while (true) {
         PlaySound(TEXT("characterselection.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
         cout << "================ MAIN MENU ================\n";
@@ -285,15 +285,15 @@ void Game::initRoster() {
 
     std::vector<CharacterData> data = {
         //Arnold
-        {"Arnold", "The Lover Boy", 
-         "Arnold used to write love letters to half the class...", 
-         "Arnold holds grudges against Kyle, Timothy, and Rolando.", 
+        {"Arnold", "The Lover Boy",
+         "Arnold used to write love letters to half the class...",
+         "Arnold holds grudges against Kyle, Timothy, and Rolando.",
          100, 80, 18,
          { {"Heart Shot", "A focused blast of pure charm.", 10, false},
            {"Romantic Shield", "Softens incoming blows.", 12, false},
            {"Starlit Serenade", "A cosmic love song.", 18, false},
            {"Love Delete", "Deletes the enemy.", 0, true} }},
-        // kyle   
+        // kyle
         {"Kyle", "The Master Beater",
          "Kyle dominates every combat exam.",
          "Kyle cannot stand Arnold's drama, Laurence's attitude, and Timothy's trash talk.",
@@ -302,7 +302,7 @@ void Game::initRoster() {
            {"Asteroid Uppercut", "Launches rivals.", 15, false},
            {"Orbit Breaker", "Breaks enemy rhythm.", 20, false},
            {"Galaxy Eraser", "One-hit erase.", 0, true} }},
-        //Dave   
+        //Dave
         {"Laurence", "The Bitch Slayer",
          "Laurence was once quiet, until everyone pushed too far.",
          "Laurence has history with everyone and never forgets a slight.",
@@ -311,7 +311,7 @@ void Game::initRoster() {
            {"Supernova Spin", "Starfire spin.", 14, false},
            {"Void Pressure", "Gravity crush.", 18, false},
            {"Oblivion Cut", "Dimensional delete.", 0, true} }},
-        //timothy   
+        //timothy
         {"Timothy", "The Trash Talker",
          "Timothy starts fights with words, not punches.",
          "He roasts Arnold's heartbreaks, Kyle's ego, and Laurence's temper.",
@@ -320,7 +320,7 @@ void Game::initRoster() {
            {"Psychic Echo", "Painful echoes in the mind.", 12, false},
            {"Galaxy Roast", "Burns pride and HP.", 20, false},
            {"Silence of Space", "Cursed delete.", 0, true} }},
-        //Rolando   
+        //Rolando
         {"Rolando", "Galactic Slayer",
          "Rumored to clear simulations alone.",
          "He hates Kyle's bragging and Timothy's comments.",
@@ -544,7 +544,7 @@ bool Game::handleLowHP(Character& c, int num, GameMode m, bool human) {
 Character Game::chooseCharacter(int playerNumber, bool showGrudges, int forbiddenIndex) {
     while (true) {
         clearScreen();
-        cout << "===== PLAYER " << playerNumber << " — CHOOSE YOUR CHARACTER =====\n\n";
+        cout << "===== PLAYER " << playerNumber << " -- CHOOSE YOUR CHARACTER =====\n\n";
 
         for (size_t i = 0; i < roster.size(); i++) {
             if ((int)i == forbiddenIndex)
@@ -685,8 +685,9 @@ void Game::playPVP() {
             w2++;
         }
 
-        cout << "Score: P1 = " << w1 << " | P2 = " << w2 << "\n\n"; 
-
+        cout << "Score: " << p1.getName() << " = " << w1 << " | "
+             << p2.getName() << " = " << w2 << "\n\n";
+             
         if (round < 5 && w1 < winGoal && w2 < winGoal) {
             cout << "Press Enter to continue...";
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
@@ -822,7 +823,8 @@ void Game::playPVC() {
             cw++;
         }
 
-        cout << "Score: You = " << pw << " | Bot = " << cw << "\n\n";
+       cout << "Score: " << p.getName() << " = " << pw << " | "
+             << bot.getName() << " = " << cw << "\n\n";
 
         if (r < 5 && pw < winGoal && cw < winGoal) {
             cout << "Press Enter...";
