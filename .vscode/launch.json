@@ -6,8 +6,8 @@
             "type": "cppdbg",
             "request": "launch",
 
-            "program": "C:/RENCE/ROLANDO-GALACTIC-GALAXY/main.exe",
-            "cwd": "C:/RENCE/ROLANDO-GALACTIC-GALAXY",
+            "program": "C:/Users/Acer - i5 11th Gen/ROLANDO-GALACTIC-GALAXY-FINAL/main.exe",
+            "cwd": "C:/Users/Acer - i5 11th Gen/ROLANDO-GALACTIC-GALAXY-FINAL",
 
             "args": [],
             "stopAtEntry": false,
