@@ -2,27 +2,27 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Build All C++",
-            "type": "shell",
-            "command": "g++",
+            "label": "Build Game",
+            "type": "process",
+            "command": "C:\\mingw64\\bin\\g++.exe",
             "args": [
-                "-g",
-                "-std=c++11",
-                "*.cpp",
+                "-std=c++17",
+                "main.cpp",
+                "Game.cpp",
+                "Character.cpp",
+                "-lwinmm",
                 "-o",
-                "main.exe",
-                "-lwinmm"
+                "main.exe"
             ],
-            "options": {
-                "cwd": "${workspaceFolder}"
+           "options": {
+                "cwd": "${workspaceFolder}" 
             },
-            "problemMatcher": [
-                "$gcc"
-            ],
-            "group": {
+            
+           "group": {
                 "kind": "build",
                 "isDefault": true
-            }
+            },
+            "problemMatcher": ["$gcc"]
         }
     ]
 }
