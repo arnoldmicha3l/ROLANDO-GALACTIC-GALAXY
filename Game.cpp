@@ -15,8 +15,8 @@
 #include <vector>
 #include <algorithm>
 #include <chrono>
-#include <functional>      // for std::function
-#include <unordered_map>    // for menu map
+#include <functional>
+#include <unordered_map>
 
 #include "Game.h"
 #include "Character.h"
@@ -230,18 +230,17 @@ bool Game::confirmExit() {
 // ===========================================
 
 void Game::mainMenu() {
-    unordered_map<int, function<void()>> menuActions = {
+      unordered_map<int, function<void()>> menuActions = {
         {1, [this]{ PlaySound(TEXT("battle.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP); playPVP(); }},
         {2, [this]{ PlaySound(TEXT("battle.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP); playPVC(); }},
         {3, [this]{ viewAllCharacters(); }},
-        {4, [this]{ PlaySound(TEXT("credits.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP); showCredits(); }},
-        {5, [this]{ viewMatchHistory(); }},
+        {4, [this]{ PlaySound(TEXT("intro.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP); showCredits(); }},
+        {5, [this]{  PlaySound(TEXT("characterselection.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP); viewMatchHistory(); }},
         {6, [this]{ if(confirmExit()){ clearScreen(); exit(0); } }}
     };
-
+    
     while (true) {
-        PlaySound(TEXT("picking.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
-
+        PlaySound(TEXT("characterselection.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
         cout << "================ MAIN MENU ================\n";
         cout << " 1. Player vs Player\n";
         cout << " 2. Player vs Computer\n";
@@ -259,26 +258,25 @@ void Game::mainMenu() {
             clearScreen();
             continue;
         }
-
-        clearScreen();
         PlaySound(NULL, 0, 0);
+        clearScreen();
 
         auto it = menuActions.find(choice);
         if (it != menuActions.end()) {
-            it->second();
+        it->second();
+
         } else {
             cout << "Invalid choice. Please try again.\n\n";
         }
     }
 }
 
-
-
 // ===========================================
 // ROSTER SETUP
 // ===========================================
 
 void Game::initRoster() {
+    // Arnold
     struct CharacterData {
         std::string name, title, bio, grudge;
         int hp, mana, baseDmg;
@@ -286,6 +284,7 @@ void Game::initRoster() {
     };
 
     std::vector<CharacterData> data = {
+        //Arnold
         {"Arnold", "The Lover Boy", 
          "Arnold used to write love letters to half the class...", 
          "Arnold holds grudges against Kyle, Timothy, and Rolando.", 
@@ -294,6 +293,7 @@ void Game::initRoster() {
            {"Romantic Shield", "Softens incoming blows.", 12, false},
            {"Starlit Serenade", "A cosmic love song.", 18, false},
            {"Love Delete", "Deletes the enemy.", 0, true} }},
+        // kyle   
         {"Kyle", "The Master Beater",
          "Kyle dominates every combat exam.",
          "Kyle cannot stand Arnold's drama, Laurence's attitude, and Timothy's trash talk.",
@@ -302,6 +302,7 @@ void Game::initRoster() {
            {"Asteroid Uppercut", "Launches rivals.", 15, false},
            {"Orbit Breaker", "Breaks enemy rhythm.", 20, false},
            {"Galaxy Eraser", "One-hit erase.", 0, true} }},
+        //Dave   
         {"Laurence", "The Bitch Slayer",
          "Laurence was once quiet, until everyone pushed too far.",
          "Laurence has history with everyone and never forgets a slight.",
@@ -310,6 +311,7 @@ void Game::initRoster() {
            {"Supernova Spin", "Starfire spin.", 14, false},
            {"Void Pressure", "Gravity crush.", 18, false},
            {"Oblivion Cut", "Dimensional delete.", 0, true} }},
+        //timothy   
         {"Timothy", "The Trash Talker",
          "Timothy starts fights with words, not punches.",
          "He roasts Arnold's heartbreaks, Kyle's ego, and Laurence's temper.",
@@ -318,6 +320,7 @@ void Game::initRoster() {
            {"Psychic Echo", "Painful echoes in the mind.", 12, false},
            {"Galaxy Roast", "Burns pride and HP.", 20, false},
            {"Silence of Space", "Cursed delete.", 0, true} }},
+        //Rolando   
         {"Rolando", "Galactic Slayer",
          "Rumored to clear simulations alone.",
          "He hates Kyle's bragging and Timothy's comments.",
@@ -508,45 +511,27 @@ int Game::computeDamage(Character& atk, Character& def, const Skill& s) {
 }
 
 bool Game::handleLowHP(Character& c, int num, GameMode m, bool human) {
-    (void)m;
+    (void)m; // not used for now
 
     if (!human) return true;
 
     if (c.getHP() <= 15 && c.getHP() > 0) {
+        cout << "Player " << num << " only has " << c.getHP() << " HP left.\n";
+        cout << "Continue or surrender?\n";
+        cout << "1. Continue\n";
+        cout << "2. Surrender\n";
+
         int choice;
+        if (!(cin >> choice)) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            return true;
+        }
 
-        cout << "\n";
-        cout << "STATUS\n";
-        cout << "Player " << num 
-             << " (" << c.getName() << "): HP: " << c.getHP() << " | Mana: " << c.getMana() << "\n"; 
-        cout << "Warning: Player " << num 
-             << " (" << c.getName() << ") has only " << c.getHP() << " HP left.\n";
-        cout << "Do you want to continue the battle or surrender?\n";
-        
-        cout << " 1. Continue\n";
-        
-        cout << " 2. Surrender\n";
-
-        do {
-            cout << "Choose: ";
-
-            if (cin >> choice) {
-                if (choice == 1) {
-                    clearScreen();
-                    return true;
-                } else if (choice == 2) {
-                    clearScreen();
-                    cout << "Player " << num << " (" << c.getName() << ") has surrendered!\n";
-                    return false;
-                }
-            } else {
-                cin.clear();
-                cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            }
-
-            cout << "Invalid choice. Please select again.\n"; 
-            
-        } while (true);
+        if (choice == 2) {
+            cout << "Player " << num << " surrendered!\n";
+            return false;
+        }
     }
 
     return true;
@@ -557,16 +542,13 @@ bool Game::handleLowHP(Character& c, int num, GameMode m, bool human) {
 // ===========================================
 
 Character Game::chooseCharacter(int playerNumber, bool showGrudges, int forbiddenIndex) {
-    
-    PlaySound(TEXT("picking.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
-
     while (true) {
         clearScreen();
-        cout << "===== PLAYER " << playerNumber << " -- CHOOSE YOUR CHARACTER =====\n\n";
+        cout << "===== PLAYER " << playerNumber << " — CHOOSE YOUR CHARACTER =====\n\n";
 
         for (size_t i = 0; i < roster.size(); i++) {
             if ((int)i == forbiddenIndex)
-                cout << i + 1 << ". " << roster[i].getName() << " (ALREADY SELECTED!)\n";
+                cout << i + 1 << ". " << roster[i].getName() << " (UNAVAILABLE)\n";
             else
                 cout << i + 1 << ". " << roster[i].getName() << "\n";
         }
@@ -636,6 +618,9 @@ void Game::playPVP() {
 
     Character p2 = chooseCharacter(2, true, forbidden);
 
+    // MUSIC: begin battle music AFTER both players are chosen
+    PlaySound(TEXT("battle.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
+
     int w1 = 0, w2 = 0;
     const int winGoal = 3;
 
@@ -652,7 +637,6 @@ void Game::playPVP() {
             cout << "P1: " << p1.getName() << " HP: " << p1.getHP() << " Mana: " << p1.getMana() << "\n";
             cout << "P2: " << p2.getName() << " HP: " << p2.getHP() << " Mana: " << p2.getMana() << "\n\n";
 
-            // P1
             if (!handleLowHP(p1, 1, GameMode::PVP, true)) {
                 w2++;
                 break;
@@ -673,7 +657,6 @@ void Game::playPVP() {
 
             if (!p2.isAlive()) break;
 
-            // P2
             if (!handleLowHP(p2, 2, GameMode::PVP, true)) {
                 w1++;
                 break;
@@ -702,7 +685,7 @@ void Game::playPVP() {
             w2++;
         }
 
-        cout << "Score: P1 = " << w1 << " | P2 = " << w2 << "\n\n";
+        cout << "Score: P1 = " << w1 << " | P2 = " << w2 << "\n\n"; 
 
         if (round < 5 && w1 < winGoal && w2 < winGoal) {
             cout << "Press Enter to continue...";
@@ -725,6 +708,12 @@ void Game::playPVP() {
     else {
         cout << "The battle ends in a draw.\n";
         winner = "Draw";
+    }
+
+    // Stop battle music and play winner sound (no loop) if there is a champion
+    PlaySound(NULL, 0, 0);
+    if (winner != "Draw") {
+        PlaySound(TEXT("winner.wav"), NULL, SND_FILENAME | SND_ASYNC);
     }
 
     using namespace std::chrono;
@@ -767,9 +756,12 @@ void Game::playPVC() {
     const int winGoal = 3;
 
     cout << "Computer chosen: " << bot.getName() << " " << bot.getTitle() << "\n";
-    cout << "Press Enter to begin...";
+    cout << "Press Enter to start the battle...";
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
     cin.get();
+
+    // MUSIC: battle music starts when the fight actually begins
+    PlaySound(TEXT("battle.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
 
     for (int r = 1; r <= 5 && pw < winGoal && cw < winGoal; r++) {
 
@@ -855,6 +847,16 @@ void Game::playPVC() {
         winner = "Draw";
     }
 
+    // Stop battle music and play appropriate result sound
+    PlaySound(NULL, 0, 0);
+    if (pw > cw) {
+        // You win
+        PlaySound(TEXT("winner.wav"), NULL, SND_FILENAME | SND_ASYNC);
+    } else if (cw > pw) {
+        // You are defeated
+        PlaySound(TEXT("defeat.wav"), NULL, SND_FILENAME | SND_ASYNC);
+    }
+
     using namespace std::chrono;
     MatchResult mr;
     mr.mode = "PVC";
@@ -888,8 +890,7 @@ void Game::showCredits() {
     string credits[] = {
         "================ CREDITS ================",
         "Game Design     : Dave Laurence R. Repe",
-        "Programming     : Arnold Michael P. Tabada",
-        "                  Nirhevn Kyle Dialimas",
+        "Programming     : Arnold Michael P. Tabada\n\t\t: Nirhevn Kyle Dialimas\n\t\t: John Timothy Cabuguas\n\t\t: Dave Laurence R. Repe\n",
         "Artwork         : John Timothy Cabuguas",
         "Story & Lore    : John Timothy Cabuguas",
         "Special Thanks  : Rolando Supremo",
@@ -902,7 +903,7 @@ void Game::showCredits() {
     };
 
     int total = sizeof(credits) / sizeof(credits[0]);
-    int delay = 80;
+    int delay = 400;
 
     for (int i = 0; i < total + 10; i++) {
         clearScreen();
@@ -917,5 +918,9 @@ void Game::showCredits() {
 
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
     cin.get();
+
+    // STOP credits music when exiting credits screen
+    PlaySound(NULL, 0, 0);
+
     clearScreen();
 }
