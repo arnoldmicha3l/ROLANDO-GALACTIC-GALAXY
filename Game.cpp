@@ -212,14 +212,16 @@ void Game::showIntro() {
 
 bool Game::confirmExit() {
     while (true) {
-        cout << "\nAre you sure to exit? yes/no: ";
+        cout << "\nAre you sure to exit? yes/no: " << flush;
         string a;
         cin >> a;
 
         for (char& c : a) c = static_cast<char>(tolower(c));
 
         if (a == "yes") return true;
-        if (a == "no")  return false;
+        if (a == "no") {
+            return false;
+        }
 
         cout << "Please type yes or no.\n";
     }
@@ -230,7 +232,8 @@ bool Game::confirmExit() {
 // ===========================================
 
 void Game::mainMenu() {
-      unordered_map<int, function<void()>> menuActions = {
+
+    unordered_map<int, function<void()>> menuActions = {
         {1, [this]{ PlaySound(TEXT("battle.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP); playPVP(); }},
         {2, [this]{ PlaySound(TEXT("battle.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP); playPVC(); }},
         {3, [this]{ viewAllCharacters(); }},
@@ -240,6 +243,7 @@ void Game::mainMenu() {
     };
 
     while (true) {
+        clearScreen();
         PlaySound(TEXT("characterselection.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
         cout << "================ MAIN MENU ================\n";
         cout << " 1. Player vs Player\n";
@@ -510,32 +514,56 @@ int Game::computeDamage(Character& atk, Character& def, const Skill& s) {
     return dmg;
 }
 
-bool Game::handleLowHP(Character& c, int num, GameMode m, bool human) {
-    (void)m; // not used for now
+// ===========================================
+// CONTINUE OR SURRENDER
+// ===========================================
 
-    if (!human) return true;
+bool Game::handleLowHP(Character &ch, int playerNumber, GameMode mode, bool isHuman) {
+    using namespace std;
 
-    if (c.getHP() <= 15 && c.getHP() > 0) {
-        cout << "Player " << num << " only has " << c.getHP() << " HP left.\n";
-        cout << "Continue or surrender?\n";
-        cout << "1. Continue\n";
-        cout << "2. Surrender\n";
+    (void)mode;
+    if (!isHuman) return true;
 
+    if (ch.getHP() <= 15 && ch.isAlive()) {
         int choice;
-        if (!(cin >> choice)) {
-            cin.clear();
-            cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            return true;
-        }
 
-        if (choice == 2) {
-            cout << "Player " << num << " surrendered!\n";
-            return false;
-        }
+        cout << "\n";
+        cout << "STATUS\n"; 
+        cout << "Player " << playerNumber
+             << " (" << ch.getName() << "): HP: " << ch.getHP() << " | Mana: 25\n"; 
+        cout << "Warning: Player " << playerNumber
+             << " (" << ch.getName() << ") has only " << ch.getHP() << " HP left.\n";
+        cout << "Do you want to continue the battle or surrender?\n";
+        
+        cout << " 1. Continue\n";
+        
+        cout << " 2. Surrender\n";
+
+        do {
+            cout << "Choose option: ";
+
+            if (cin >> choice) {
+                if (choice == 1) {
+                    clearScreen();
+                    return true;
+                } else if (choice == 2) {
+                    clearScreen();
+                    cout << "Player " << playerNumber << " (" << ch.getName() << ") has surrendered!\n";
+                    return false;
+                }
+            } else {
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            }
+
+            cout << "Invalid choice. Please select again.\n"; 
+            
+        } while (true);
     }
 
     return true;
 }
+
 
 // ===========================================
 // CHARACTER SELECTION
@@ -557,16 +585,19 @@ Character Game::chooseCharacter(int playerNumber, bool showGrudges, int forbidde
 
         int choice;
         cout << "Enter choice: ";
-
         if (!(cin >> choice)) {
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
             continue;
         }
 
-        // Back option (fallback)
-        if (choice == (int)roster.size() + 1)
-            return roster[0];
+        // Back option
+        if (choice == (int)roster.size() + 1) {
+            Character back;
+            back.setHP(-1);          // special flag
+            back.setMaxHP(-1);
+            return back;              // signal to cancel
+        }
 
         if (choice >= 1 && choice <= (int)roster.size()) {
             int index = choice - 1;
@@ -585,13 +616,23 @@ Character Game::chooseCharacter(int playerNumber, bool showGrudges, int forbidde
                      << roster[index].getGrudge() << "\n\n";
             }
 
-            cout << "Confirm select? (yes/no): ";
-            string confirm;
+        cout << "Confirm select? (yes/no): ";
+        string confirm;
+        while (true) {
             cin >> confirm;
             for (char &c : confirm) c = static_cast<char>(tolower(c));
 
-            if (confirm == "yes")
-                return roster[index];
+            if (confirm == "yes") {
+                return roster[index];  
+            }
+            else if (confirm == "no") {
+                break;  
+            }
+
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        }
+
         }
         else {
             cout << "Invalid choice.\n";
@@ -599,6 +640,7 @@ Character Game::chooseCharacter(int playerNumber, bool showGrudges, int forbidde
         }
     }
 }
+
 
 // ===========================================
 // PVP MODE
@@ -609,14 +651,16 @@ void Game::playPVP() {
     cout << "=============== PLAYER VS PLAYER ===============\n\n";
 
     Character p1 = chooseCharacter(1, true, -1);
+    if (p1.getHP() == -1) return;  // player chose Back -> exit to main menu
 
     int forbidden = -1;
     for (size_t i = 0; i < roster.size(); i++) {
         if (roster[i].getName() == p1.getName())
-            forbidden = (int)i;
+        forbidden = (int)i;
     }
 
     Character p2 = chooseCharacter(2, true, forbidden);
+    if (p2.getHP() == -1) return;  // player chose Back -> exit to main menu
 
     // MUSIC: begin battle music AFTER both players are chosen
     PlaySound(TEXT("battle.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
@@ -677,7 +721,7 @@ void Game::playPVP() {
         }
 
         if (p1.isAlive() && !p2.isAlive()) {
-            cout << "Player 1 wins round " << round << "!\n";
+            cout << "Player 1 wins round " << round << "!\n\n";
             w1++;
         }
         else if (p2.isAlive() && !p1.isAlive()) {
@@ -748,9 +792,26 @@ void Game::playPVC() {
     clearScreen();
     cout << "============= PLAYER VS COMPUTER =============\n\n";
 
+    // Player chooses character
     Character p = chooseCharacter(1, false, -1);
 
-    int aiIndex = getRandomInt(0, (int)roster.size() - 1);
+    // Check if player pressed Back
+    if (p.getHP() == -1) return;  // return to main menu
+
+    // Find the player's character index to forbid bot from choosing it
+    int forbiddenIndex = -1;
+    for (size_t i = 0; i < roster.size(); i++) {
+        if (roster[i].getName() == p.getName()) {
+            forbiddenIndex = (int)i;
+            break;
+        }
+    }
+
+    // Pick bot character avoiding the player's character
+    int aiIndex;
+    do {
+        aiIndex = getRandomInt(0, (int)roster.size() - 1);
+    } while (aiIndex == forbiddenIndex);
     Character bot = roster[aiIndex];
 
     int pw = 0, cw = 0;
@@ -802,11 +863,19 @@ void Game::playPVC() {
             if (!bot.isAlive()) break;
 
             cout << "--- BOT TURN ---\n";
-            int aiS = getRandomInt(0, (int)bot.getSkills().size() - 1);
+
+            // Bot chooses skill excluding 1-hit delete
+            std::vector<int> availableSkills;
+            for (size_t i = 0; i < bot.getSkills().size(); i++) {
+                if (!bot.getSkills()[i].isOneHitDelete)
+                    availableSkills.push_back((int)i);
+            }
+
+            int aiS = availableSkills[getRandomInt(0, (int)availableSkills.size() - 1)];
             const Skill& as = bot.getSkills()[aiS];
 
             const Skill* useA = &as;
-            if (!as.isOneHitDelete && bot.getMana() < as.manaCost)
+            if (bot.getMana() < as.manaCost)
                 useA = &BASIC_ATTACK;
             else
                 bot.useMana(as.manaCost);
@@ -823,7 +892,7 @@ void Game::playPVC() {
             cw++;
         }
 
-       cout << "Score: " << p.getName() << " = " << pw << " | "
+        cout << "Score: " << p.getName() << " = " << pw << " | "
              << bot.getName() << " = " << cw << "\n\n";
 
         if (r < 5 && pw < winGoal && cw < winGoal) {
@@ -839,12 +908,10 @@ void Game::playPVC() {
     if (pw > cw) {
         cout << "You are the champion!\n";
         winner = p.getName();
-    }
-    else if (cw > pw) {
+    } else if (cw > pw) {
         cout << "The Computer wins!\n";
         winner = bot.getName();
-    }
-    else {
+    } else {
         cout << "Match ends in a draw.\n";
         winner = "Draw";
     }
@@ -852,10 +919,8 @@ void Game::playPVC() {
     // Stop battle music and play appropriate result sound
     PlaySound(NULL, 0, 0);
     if (pw > cw) {
-        // You win
         PlaySound(TEXT("winner.wav"), NULL, SND_FILENAME | SND_ASYNC);
     } else if (cw > pw) {
-        // You are defeated
         PlaySound(TEXT("defeat.wav"), NULL, SND_FILENAME | SND_ASYNC);
     }
 
@@ -881,6 +946,7 @@ void Game::playPVC() {
     cin.get();
     clearScreen();
 }
+
 
 // ===========================================
 // CREDITS SCREEN

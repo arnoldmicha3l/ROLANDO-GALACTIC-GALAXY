@@ -4,7 +4,7 @@
         {
             "label": "Build Game",
             "type": "process",
-            "command": "C:\\mingw64\\bin\\g++.exe",
+            "command": "C:/msys64/ucrt64/bin/g++.exe",
             "args": [
                 "-std=c++17",
                 "main.cpp",
@@ -14,11 +14,10 @@
                 "-o",
                 "main.exe"
             ],
-           "options": {
+            "options": {
                 "cwd": "${workspaceFolder}" 
             },
-            
-           "group": {
+            "group": {
                 "kind": "build",
                 "isDefault": true
             },
