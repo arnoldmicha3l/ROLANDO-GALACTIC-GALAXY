@@ -1,6 +1,6 @@
-#include <windows.h>
-#include <mmsystem.h>
-#pragma comment(lib, "winmm.lib")
+#include "Game.h"
+#include "Character.h"
+#include "Skill.h"
 
 #include <iostream>
 #include <iomanip>
@@ -11,18 +11,65 @@
 #include <ctime>
 #include <fstream>
 #include <sstream>
-#include <conio.h>
 #include <vector>
 #include <algorithm>
 #include <chrono>
-#include <functional> // Added in the first snippet
-#include <unordered_map> // Added in the first snippet
+#include <functional>
+#include <unordered_map>
 
-#include "Game.h"
-#include "Character.h"
-#include "Skill.h"
+#include <windows.h>
+#include <mmsystem.h>
+#include <conio.h> 
+
+#pragma comment(lib, "winmm.lib")
 
 using namespace std;
+
+namespace Color {
+    
+    const std::string RESET = "\033[0m";
+    
+    const std::string RED = "\033[31m";
+    const std::string GREEN = "\033[32m";
+    const std::string YELLOW = "\033[33m";
+    const std::string WHITE = "\033[37m";
+    const std::string BLUE = "\033[34m";
+    const std::string MAGENTA = "\033[35m";
+    const std::string CYAN = "\033[36m";
+    const std::string ORANGE = "\033[93m";
+    const std::string BROWN = "\033[33m";
+    const std::string VIOLET = "\033[95m";
+    
+    const std::string BOLD = "\033[1m";
+    const std::string BOLD_RED = "\033[1;31m";
+    const std::string BOLD_GREEN = "\033[1;32m";
+    const std::string BOLD_YELLOW = "\033[1;33m";
+    const std::string BOLD_BLUE = "\033[1;34m";
+    const std::string BOLD_MAGENTA = "\033[1;35m";
+    const std::string BOLD_CYAN = "\033[1;36m";
+    const std::string BRIGHT_WHITE = "\033[97m";
+    const std::string BOLD_WHITE = "\033[1;97m";
+    const std::string BOLD_VIOLET = "\033[1;95m";
+}
+
+#define COLOR_ARNOLD Color::BOLD_YELLOW
+#define COLOR_KYLE Color::BOLD_BLUE
+#define COLOR_LAURENCE Color::BOLD_MAGENTA
+#define COLOR_TIMOTHY Color::WHITE
+#define COLOR_ROLANDO Color::BOLD_RED
+#define COLOR_ORANGE Color::ORANGE
+#define COLOR_BROWN Color::BROWN
+#define COLOR_VIOLET Color::VIOLET
+#define COLOR_WHITE Color::WHITE
+
+const std::string& getCharacterColor(const std::string& name) {
+    if (name == "Arnold") return COLOR_ARNOLD;
+    if (name == "Kyle") return COLOR_KYLE;
+    if (name == "Laurence") return COLOR_LAURENCE;
+    if (name == "Timothy") return COLOR_TIMOTHY;
+    if (name == "Rolando") return COLOR_ROLANDO;
+    return COLOR_WHITE;
+}
 
 const char* HISTORY_FILE = "match_history.txt";
 
@@ -31,7 +78,7 @@ const char* HISTORY_FILE = "match_history.txt";
 // ===========================================
 
 string MatchResult::getTimeString() const {
-    // timestamp is stored as milliseconds since Unix epoch
+
     using namespace std::chrono;
 
     time_t raw = static_cast<time_t>(timestamp / 1000);
@@ -50,7 +97,8 @@ string MatchResult::getTimeString() const {
 Game::Game() {
     random_device rd;
     rng.seed(rd());
-    initRoster();
+    
+    initRoster(); 
     loadMatchHistory();
 }
 
@@ -58,7 +106,7 @@ void Game::clearScreen() {
 #ifdef _WIN32
     system("cls");
 #else
-    cout << "\033[2J\033[1;1H";
+    cout << "\033[2J\033[1;1H"; 
 #endif
 }
 
@@ -106,7 +154,7 @@ void Game::loadMatchHistory() {
         }
     }
 
-    // Enforce queue capacity (FIFO)
+    // Queue capacity (FIFO)
     while (history.size() > MAX_HISTORY_CAPACITY)
         history.erase(history.begin());
 }
@@ -154,6 +202,7 @@ void Game::typeText(const char* text, int delayMs) {
     bool skipLine = false;
 
     for (int i = 0; text[i] != '\0'; i++) {
+        
         cout << text[i] << flush;
 
         if (skipLine || delayMs <= 0)
@@ -165,7 +214,6 @@ void Game::typeText(const char* text, int delayMs) {
         while (elapsed < delayMs) {
             if (_kbhit()) {
                 if (_getch() == ' ') {
-                    // Spacebar: skip the rest of this line at full speed
                     skipLine = true;
                     break;
                 }
@@ -182,20 +230,20 @@ void Game::typeText(const char* text, int delayMs) {
 // ===========================================
 
 void Game::showIntro() {
-    // Loop intro music
     PlaySound(TEXT("intro.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
 
-    cout << "==================================================\n";
-    cout << "          ROLANDO GALACTIC GRAVEYARD              \n";
-    cout << "==================================================\n\n";
+    cout << Color::BOLD_BLUE << "==================================================" << Color::RESET << "\n";
+    cout << Color::BOLD_CYAN << "         ROLANDO GALACTIC GRAVEYARD             " << Color::RESET << "\n";
+    cout << Color::BOLD_BLUE << "==================================================" << Color::RESET << "\n\n";
 
-    typeText("Welcome to Rolando Galactic Graveyard, a floating school.\n", 25);
-    typeText("in deep space where students settle their rivalries\n", 25);
-    typeText("in the legendary battle arena.\n\n", 25);
-    typeText("Choose your fighter, unleash your skills,\n", 25);
-    typeText("Tonight, a new hunter enters the field.\n", 25);
-    typeText("Choose your warrior and carve your legend.\n\n", 25);
+    typeText((Color::WHITE + "Welcome to  \"Rolando Galactic Graveyard\" , a floating school.\n").c_str(), 25);
+    typeText((Color::WHITE + "in deep space where students settle their rivalries\n").c_str(), 25);
+    typeText((Color::WHITE + "in the legendary battle arena.\n\n").c_str(), 25);
+    typeText((Color::WHITE+ "Choose your fighter, unleash your skills,\n").c_str(), 25);
+    typeText((Color::WHITE + "Tonight, a new hunter enters the field.\n").c_str(), 25);
+    typeText((Color::WHITE + "Choose your warrior and carve your legend." + Color::RESET + "\n\n").c_str(), 25);
 
+    typeText(Color::BRIGHT_WHITE.c_str(), 0);
     typeText("Press Enter to continue...", 25);
 
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
@@ -212,7 +260,7 @@ void Game::showIntro() {
 
 bool Game::confirmExit() {
     while (true) {
-        cout << "\nAre you sure to exit? yes/no: " << flush;
+        cout << Color::BOLD_RED << "\nAre you sure to exit? " << Color::RESET << "(yes/no): " << flush;
         string a;
         cin >> a;
 
@@ -223,7 +271,7 @@ bool Game::confirmExit() {
             return false;
         }
 
-        cout << "Please type yes or no.\n";
+        cout << Color::RED << "Please type yes or no.\n" << Color::RESET;
     }
 }
 
@@ -238,22 +286,22 @@ void Game::mainMenu() {
         {2, [this]{ PlaySound(TEXT("battle.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP); playPVC(); }},
         {3, [this]{ viewAllCharacters(); }},
         {4, [this]{ PlaySound(TEXT("intro.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP); showCredits(); }},
-        {5, [this]{  PlaySound(TEXT("characterselection.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP); viewMatchHistory(); }},
+        {5, [this]{ PlaySound(TEXT("characterselection.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP); viewMatchHistory(); }},
         {6, [this]{ if(confirmExit()){ clearScreen(); exit(0); } }}
     };
 
     while (true) {
         clearScreen();
-        PlaySound(TEXT("characterselection.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
-        cout << "================ MAIN MENU ================\n";
-        cout << " 1. Player vs Player\n";
-        cout << " 2. Player vs Computer\n";
-        cout << " 3. View All Characters\n";
-        cout << " 4. Credits\n";
-        cout << " 5. View Match Results\n";
-        cout << " 6. Exit Game\n";
-        cout << "===========================================\n";
-        cout << "Enter choice: ";
+        PlaySound(TEXT("characterselection.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP); 
+        cout << Color::BOLD_GREEN << "================ MAIN MENU ================" << Color::RESET << "\n";
+        cout << " " << Color::CYAN << "1. Player vs Player" << Color::RESET << "\n";
+        cout << " " << Color::WHITE<< "2. Player vs Computer" << Color::RESET << "\n";
+        cout << " " << Color::YELLOW << "3. View All Characters" << Color::RESET << "\n";
+        cout << " " << Color::MAGENTA << "4. Credits" << Color::RESET << "\n";
+        cout << " " << Color::BLUE << "5. View Match Results" << Color::RESET << "\n";
+        cout << " " << Color::RED << "6. Exit Game" << Color::RESET << "\n";
+        cout << Color::BOLD_GREEN << "===========================================" << Color::RESET << "\n";
+        cout << Color::BOLD_WHITE << "Enter choice: " << Color::RESET;
 
         int choice;
         if (!(cin >> choice)) {
@@ -262,15 +310,14 @@ void Game::mainMenu() {
             clearScreen();
             continue;
         }
-        PlaySound(NULL, 0, 0);
+        PlaySound(NULL, 0, 0); // Stop selection music before action
         clearScreen();
 
         auto it = menuActions.find(choice);
         if (it != menuActions.end()) {
-        it->second();
-
+            it->second();
         } else {
-            cout << "Invalid choice. Please try again.\n\n";
+            cout << Color::RED << "Invalid choice. Please try again.\n\n" << Color::RESET;
         }
     }
 }
@@ -280,7 +327,6 @@ void Game::mainMenu() {
 // ===========================================
 
 void Game::initRoster() {
-    // Arnold
     struct CharacterData {
         std::string name, title, bio, grudge;
         int hp, mana, baseDmg;
@@ -288,7 +334,7 @@ void Game::initRoster() {
     };
 
     std::vector<CharacterData> data = {
-        //Arnold
+        
         {"Arnold", "The Lover Boy",
          "Arnold used to write love letters to half the class...",
          "Arnold holds grudges against Kyle, Timothy, and Rolando.",
@@ -297,7 +343,7 @@ void Game::initRoster() {
            {"Romantic Shield", "Softens incoming blows.", 12, false},
            {"Starlit Serenade", "A cosmic love song.", 18, false},
            {"Love Delete", "Deletes the enemy.", 0, true} }},
-        // kyle
+        
         {"Kyle", "The Master Beater",
          "Kyle dominates every combat exam.",
          "Kyle cannot stand Arnold's drama, Laurence's attitude, and Timothy's trash talk.",
@@ -306,7 +352,7 @@ void Game::initRoster() {
            {"Asteroid Uppercut", "Launches rivals.", 15, false},
            {"Orbit Breaker", "Breaks enemy rhythm.", 20, false},
            {"Galaxy Eraser", "One-hit erase.", 0, true} }},
-        //Dave
+        
         {"Laurence", "The Bitch Slayer",
          "Laurence was once quiet, until everyone pushed too far.",
          "Laurence has history with everyone and never forgets a slight.",
@@ -315,7 +361,7 @@ void Game::initRoster() {
            {"Supernova Spin", "Starfire spin.", 14, false},
            {"Void Pressure", "Gravity crush.", 18, false},
            {"Oblivion Cut", "Dimensional delete.", 0, true} }},
-        //timothy
+        
         {"Timothy", "The Trash Talker",
          "Timothy starts fights with words, not punches.",
          "He roasts Arnold's heartbreaks, Kyle's ego, and Laurence's temper.",
@@ -324,7 +370,7 @@ void Game::initRoster() {
            {"Psychic Echo", "Painful echoes in the mind.", 12, false},
            {"Galaxy Roast", "Burns pride and HP.", 20, false},
            {"Silence of Space", "Cursed delete.", 0, true} }},
-        //Rolando
+        
         {"Rolando", "Galactic Slayer",
          "Rumored to clear simulations alone.",
          "He hates Kyle's bragging and Timothy's comments.",
@@ -337,7 +383,8 @@ void Game::initRoster() {
 
     roster.clear();
     for (const auto& d : data) {
-        Character c(d.name, d.title, d.hp, d.mana, d.baseDmg, "", d.bio, d.grudge);
+        //Character constructor takes (Name, Title, HP, Mana, BaseDmg, Color, Bio, Grudge)
+        Character c(d.name, d.title, d.hp, d.mana, d.baseDmg, getCharacterColor(d.name), d.bio, d.grudge); 
         for (const auto& s : d.skills) c.addSkill(s);
         roster.push_back(c);
     }
@@ -350,14 +397,14 @@ void Game::initRoster() {
 void Game::viewAllCharacters() {
     while (true) {
         clearScreen();
-        cout << "===== VIEW ALL CHARACTERS =====\n\n";
+        cout << Color::BOLD_MAGENTA << "===== VIEW ALL CHARACTERS =====" << Color::RESET << "\n\n";
 
         for (size_t i = 0; i < roster.size(); i++)
-            cout << i+1 << ". " << roster[i].getName() << "\n";
+            cout << Color::WHITE << i+1 << ". " << getCharacterColor(roster[i].getName()) << roster[i].getName() << Color::RESET << "\n";
 
-        cout << roster.size() + 1 << ". Back\n\n";
+        cout << Color::WHITE << roster.size() + 1 << ". Back" << Color::RESET << "\n\n";
 
-        cout << "Choose a character: ";
+        cout << Color::BOLD_WHITE << "Choose a character: " << Color::RESET;
         int choice;
 
         if (!(cin >> choice)) {
@@ -373,6 +420,10 @@ void Game::viewAllCharacters() {
 
         if (choice >= 1 && choice <= (int)roster.size())
             displayCharacterDetails(choice - 1);
+        else {
+            cout << Color::RED << "Invalid character choice." << Color::RESET << "\n";
+            Sleep(800);
+        }
     }
 }
 
@@ -381,37 +432,37 @@ void Game::displayCharacterDetails(int i) {
 
     Character& c = roster[i];
 
-    cout << "=========================================\n";
-    cout << "            CHARACTER PROFILE            \n";
-    cout << "=========================================\n\n";
+    cout << Color::BOLD_CYAN << "=========================================" << Color::RESET << "\n";
+    cout << Color::BOLD_WHITE << "           CHARACTER PROFILE             " << Color::RESET << "\n";
+    cout << Color::BOLD_CYAN << "=========================================" << Color::RESET << "\n\n";
 
-    cout << "Name : " << c.getName() << "\n";
-    cout << "Title: " << c.getTitle() << "\n\n";
+    cout << Color::BOLD_WHITE << "Name : " << getCharacterColor(c.getName()) << c.getName() << Color::RESET << "\n";
+    cout << Color::BOLD_WHITE << "Title: " << Color::YELLOW << c.getTitle() << Color::RESET << "\n\n";
 
-    cout << "--- BACKSTORY ---\n" << c.getBio() << "\n\n";
-    cout << "--- GRUDGES ---\n" << c.getGrudge() << "\n\n";
+    cout << Color::BOLD_VIOLET << "--- BACKSTORY ---" << Color::RESET << "\n" << c.getBio() << "\n\n";
+    cout << Color::BOLD_VIOLET << "--- GRUDGES ---" << Color::RESET << "\n" << Color::WHITE << c.getGrudge() << Color::RESET << "\n\n";
 
     cout << left;
-    cout << setw(12) << "HP"          << ": " << c.getHP()        << " / " << c.getMaxHP()     << "\n";
-    cout << setw(12) << "Mana"        << ": " << c.getMana()      << " / " << c.getMaxMana()   << "\n";
-    cout << setw(12) << "Base Damage" << ": " << c.getBaseDamage() << "\n\n";
+    cout << Color::BOLD_WHITE << setw(12) << "HP" << Color::RESET << Color::GREEN << ": " << c.getHP() << " / " << c.getMaxHP() << Color::RESET << "\n";
+    cout << Color::BOLD_WHITE << setw(12) << "Mana" << Color::RESET << Color::BLUE << ": " << c.getMana() << " / " << c.getMaxMana() << Color::RESET << "\n";
+    cout << Color::BOLD_WHITE << setw(12) << "Base Damage" << Color::RESET << Color::ORANGE << ": " << c.getBaseDamage() << Color::RESET << "\n\n";
 
-    cout << "=== SKILLS ===\n";
+    cout << Color::BOLD_WHITE << "=== SKILLS ===" << Color::RESET << "\n";
     const auto& s = c.getSkills();
 
     int min = c.getBaseDamage() - 3;
     int max = c.getBaseDamage() + 5;
 
     for (size_t z = 0; z < s.size(); z++) {
-        cout << z+1 << ") " << s[z].name << " (Mana: " << s[z].manaCost << ")\n";
-        cout << "    " << s[z].description << "\n";
+        cout << Color::CYAN << z+1 << ") " << s[z].name << Color::RESET << " (Mana: " << Color::BLUE << s[z].manaCost << Color::RESET << ")\n";
+        cout << Color::WHITE << "    " << s[z].description << Color::RESET << "\n";
         if (s[z].isOneHitDelete)
-            cout << "    Damage: ONE-HIT DELETE.\n\n";
+            cout << Color::RED << "    Damage: ONE-HIT DELETE." << Color::RESET << "\n\n";
         else
-            cout << "    Est. Damage: " << min << "–" << max << "\n\n";
+            cout << Color::ORANGE << "    Est. Damage: " << min << "-" << max << Color::RESET << "\n\n";
     }
 
-    cout << "Press Enter...";
+    cout << Color::BRIGHT_WHITE << "Press Enter..." << Color::RESET;
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
     cin.get();
 }
@@ -427,32 +478,37 @@ int Game::getRandomInt(int min, int max) {
 
 int Game::chooseSkill(const Character& ch) {
     const auto& skills = ch.getSkills();
+    const std::string& chColor = getCharacterColor(ch.getName());
 
-    cout << "Choose a skill for " << ch.getName() << ":\n\n";
+    cout << Color::BOLD_WHITE << "Choose a skill for " << chColor << ch.getName() << Color::RESET << ":\n\n";
 
     for (size_t i = 0; i < skills.size(); i++) {
-        cout << i+1 << ") " << skills[i].name
-             << " (Mana: " << skills[i].manaCost << ")";
-        if (skills[i].isOneHitDelete)
-            cout << " [DELETE]";
-        else if (ch.getMana() < skills[i].manaCost)
-            cout << " [LOW MANA]";
-        cout << "\n    " << skills[i].description << "\n\n";
+        const Skill& skill = skills[i];
+        
+        cout << Color::CYAN << i+1 << ") " << skill.name << Color::RESET 
+             << " (Mana: " << Color::BLUE << skill.manaCost << Color::RESET << ")";
+
+        if (skill.isOneHitDelete)
+            cout << Color::BOLD_RED << " [DELETE]";
+        else if (ch.getMana() < skill.manaCost)
+            cout << Color::RED << " [LOW MANA]";
+            
+        cout << "\n" << Color::WHITE << "    " << skill.description << Color::RESET << "\n\n";
     }
 
     int suggested = getRandomInt(1, (int)skills.size());
-    cout << "Random suggests: " << suggested << "\n\n";
+    cout << Color::MAGENTA << "Random suggests: " << suggested << Color::RESET << "\n\n";
 
     int c;
     while (true) {
-        cout << "Enter skill number: ";
+        cout << Color::BOLD_WHITE << "Enter skill number: " << Color::RESET;
         if (!(cin >> c)) {
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
             continue;
         }
         if (c >= 1 && c <= (int)skills.size()) break;
-        cout << "Invalid.\n";
+        cout << Color::RED << "Invalid.\n" << Color::RESET;
     }
 
     system("cls");
@@ -462,7 +518,7 @@ int Game::chooseSkill(const Character& ch) {
 int Game::computeDamage(Character& atk, Character& def, const Skill& s) {
     // ONE HIT DELETE
     if (s.isOneHitDelete) {
-        cout << "*** ONE HIT DELETE ACTIVATED! ***\n";
+        cout << Color::BOLD_RED << "* ONE HIT DELETE ACTIVATED! *" << Color::RESET << "\n";
         return def.getHP();
     }
 
@@ -475,42 +531,41 @@ int Game::computeDamage(Character& atk, Character& def, const Skill& s) {
     if (!basic)
         dmg += s.manaCost;
 
-    // PASSIVES
     if (atk.getName() == "Arnold") {
         if (getRandomInt(1,100) <= 25) {
-            cout << "Romantic Aura! +5 dmg + heal 5.\n";
+            cout << COLOR_ARNOLD << "Romantic Aura! +5 dmg + heal 5." << Color::RESET << "\n";
             dmg += 5;
             atk.heal(5);
         }
     }
     else if (atk.getName() == "Kyle") {
         if (getRandomInt(1,100) <= 20) {
-            cout << "Combo Master! DOUBLE DAMAGE!\n";
+            cout << COLOR_KYLE << "Combo Master! DOUBLE DAMAGE!" << Color::RESET << "\n";
             dmg *= 2;
         }
     }
     else if (atk.getName() == "Laurence") {
         if (def.getHP() < 40) {
-            cout << "Relentless! +5 dmg.\n";
+            cout << COLOR_LAURENCE << "Relentless! +5 dmg." << Color::RESET << "\n";
             dmg += 5;
         }
     }
     else if (atk.getName() == "Timothy") {
         if (getRandomInt(1,100) <= 30) {
-            cout << "Mind Games! +5 dmg.\n";
+            cout << COLOR_TIMOTHY << "Mind Games! +5 dmg." << Color::RESET << "\n";
             dmg += 5;
         }
     }
     else if (atk.getName() == "Rolando") {
         if (getRandomInt(1,100) <= 25) {
-            cout << "Galactic Fury! +5 dmg.\n";
+            cout << COLOR_ROLANDO << "Galactic Fury! +5 dmg." << Color::RESET << "\n";
             dmg += 5;
         }
     }
 
     if (dmg < 0) dmg = 0;
 
-    cout << "Final damage: " << dmg << "\n\n";
+    cout << Color::WHITE << "Final damage: " << dmg << Color::RESET << "\n\n";
     return dmg;
 }
 
@@ -526,21 +581,22 @@ bool Game::handleLowHP(Character &ch, int playerNumber, GameMode mode, bool isHu
 
     if (ch.getHP() <= 15 && ch.isAlive()) {
         int choice;
+        const std::string& chColor = getCharacterColor(ch.getName());
 
         cout << "\n";
-        cout << "STATUS\n"; 
+        cout << Color::BOLD_WHITE << "STATUS WARNING" << Color::RESET << "\n"; 
         cout << "Player " << playerNumber
-             << " (" << ch.getName() << "): HP: " << ch.getHP() << " | Mana: 25\n"; 
-        cout << "Warning: Player " << playerNumber
-             << " (" << ch.getName() << ") has only " << ch.getHP() << " HP left.\n";
-        cout << "Do you want to continue the battle or surrender?\n";
+             << " (" << chColor << ch.getName() << Color::RESET << "): "
+             << Color::RED << "HP: " << ch.getHP() << Color::RESET << " | Mana: " << ch.getMana() << "\n"; 
+        cout << Color::BOLD_WHITE << "Warning: Player " << playerNumber
+             << " (" << ch.getName() << ") has only " << ch.getHP() << " HP left." << Color::RESET << "\n";
+        cout << Color::BOLD_WHITE << "Do you want to continue the battle or surrender?" << Color::RESET << "\n";
         
-        cout << " 1. Continue\n";
-        
-        cout << " 2. Surrender\n";
+        cout << Color::GREEN << " 1. Continue" << Color::RESET << "\n";
+        cout << Color::RED << " 2. Surrender" << Color::RESET << "\n";
 
         do {
-            cout << "Choose option: ";
+            cout << Color::BOLD_WHITE << "Choose an option:(1/2): " << Color::RESET;
 
             if (cin >> choice) {
                 if (choice == 1) {
@@ -548,7 +604,7 @@ bool Game::handleLowHP(Character &ch, int playerNumber, GameMode mode, bool isHu
                     return true;
                 } else if (choice == 2) {
                     clearScreen();
-                    cout << "Player " << playerNumber << " (" << ch.getName() << ") has surrendered!\n";
+                    cout << Color::BOLD_RED << "Player " << playerNumber << " (" << ch.getName() << ") has surrendered!" << Color::RESET << "\n";
                     return false;
                 }
             } else {
@@ -556,7 +612,7 @@ bool Game::handleLowHP(Character &ch, int playerNumber, GameMode mode, bool isHu
                 cin.ignore(numeric_limits<streamsize>::max(), '\n');
             }
 
-            cout << "Invalid choice. Please select again.\n"; 
+            cout << Color::RED << "Invalid choice. Please select again.\n" << Color::RESET; 
             
         } while (true);
     }
@@ -572,19 +628,24 @@ bool Game::handleLowHP(Character &ch, int playerNumber, GameMode mode, bool isHu
 Character Game::chooseCharacter(int playerNumber, bool showGrudges, int forbiddenIndex) {
     while (true) {
         clearScreen();
-        cout << "===== PLAYER " << playerNumber << " -- CHOOSE YOUR CHARACTER =====\n\n";
+        cout << Color::BOLD_GREEN << "===== PLAYER " << playerNumber << " -- CHOOSE YOUR CHARACTER =====" << Color::RESET << "\n\n";
 
         for (size_t i = 0; i < roster.size(); i++) {
+            const std::string& chName = roster[i].getName();
+            const std::string& chColor = getCharacterColor(chName);
+            
+            cout << Color::WHITE << i + 1 << ". " << chColor << chName << Color::RESET;
+            
             if ((int)i == forbiddenIndex)
-                cout << i + 1 << ". " << roster[i].getName() << " (UNAVAILABLE)\n";
-            else
-                cout << i + 1 << ". " << roster[i].getName() << "\n";
+                cout << Color::RED << " (UNAVAILABLE)" << Color::RESET;
+            
+            cout << "\n";
         }
 
-        cout << roster.size() + 1 << ". Back\n\n";
+        cout << Color::WHITE << roster.size() + 1 << ". Back" << Color::RESET << "\n\n";
 
         int choice;
-        cout << "Enter choice: ";
+        cout << Color::BOLD_WHITE << "Enter choice: " << Color::RESET;
         if (!(cin >> choice)) {
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
@@ -594,7 +655,7 @@ Character Game::chooseCharacter(int playerNumber, bool showGrudges, int forbidde
         // Back option
         if (choice == (int)roster.size() + 1) {
             Character back;
-            back.setHP(-1);          // special flag
+            back.setHP(-1);           // special flag
             back.setMaxHP(-1);
             return back;              // signal to cancel
         }
@@ -603,7 +664,7 @@ Character Game::chooseCharacter(int playerNumber, bool showGrudges, int forbidde
             int index = choice - 1;
 
             if (index == forbiddenIndex) {
-                cout << "That character is unavailable. Choose another.\n";
+                cout << Color::RED << "That character is unavailable. Choose another." << Color::RESET << "\n";
                 Sleep(1000);
                 continue;
             }
@@ -612,21 +673,21 @@ Character Game::chooseCharacter(int playerNumber, bool showGrudges, int forbidde
             displayCharacterDetails(index);
 
             if (showGrudges) {
-                cout << "\nThis character holds grudges against: "
-                     << roster[index].getGrudge() << "\n\n";
+                cout << Color::BOLD_WHITE << "\nThis character holds grudges against: "
+                     << Color::WHITE << roster[index].getGrudge() << Color::RESET << "\n\n";
             }
 
-        cout << "Confirm select? (yes/no): ";
+        cout << Color::BOLD_WHITE << "Confirm select? " << Color::RESET << "(yes/no): ";
         string confirm;
         while (true) {
             cin >> confirm;
             for (char &c : confirm) c = static_cast<char>(tolower(c));
 
             if (confirm == "yes") {
-                return roster[index];  
+                return roster[index]; 
             }
             else if (confirm == "no") {
-                break;  
+                break; 
             }
 
             cin.clear();
@@ -635,7 +696,7 @@ Character Game::chooseCharacter(int playerNumber, bool showGrudges, int forbidde
 
         }
         else {
-            cout << "Invalid choice.\n";
+            cout << Color::RED << "Invalid choice." << Color::RESET << "\n";
             Sleep(800);
         }
     }
@@ -648,10 +709,10 @@ Character Game::chooseCharacter(int playerNumber, bool showGrudges, int forbidde
 
 void Game::playPVP() {
     clearScreen();
-    cout << "=============== PLAYER VS PLAYER ===============\n\n";
+    cout << Color::BOLD_YELLOW << "=============== PLAYER VS PLAYER ===============\n\n" << Color::RESET;
 
     Character p1 = chooseCharacter(1, true, -1);
-    if (p1.getHP() == -1) return;  // player chose Back -> exit to main menu
+    if (p1.getHP() == -1) return; 
 
     int forbidden = -1;
     for (size_t i = 0; i < roster.size(); i++) {
@@ -660,7 +721,7 @@ void Game::playPVP() {
     }
 
     Character p2 = chooseCharacter(2, true, forbidden);
-    if (p2.getHP() == -1) return;  // player chose Back -> exit to main menu
+    if (p2.getHP() == -1) return; 
 
     // MUSIC: begin battle music AFTER both players are chosen
     PlaySound(TEXT("battle.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
@@ -674,25 +735,29 @@ void Game::playPVP() {
         p2.resetForNewRound();
 
         clearScreen();
-        cout << "================= ROUND " << round << " =================\n\n";
+        cout << Color::BOLD_WHITE << "================= ROUND " << round << " =================\n\n" << Color::RESET;
 
         while (p1.isAlive() && p2.isAlive()) {
-            cout << "STATUS:\n";
-            cout << "P1: " << p1.getName() << " HP: " << p1.getHP() << " Mana: " << p1.getMana() << "\n";
-            cout << "P2: " << p2.getName() << " HP: " << p2.getHP() << " Mana: " << p2.getMana() << "\n\n";
+            cout << Color::BOLD_WHITE << "STATUS:" << Color::RESET << "\n";
+            cout << "P1: " << getCharacterColor(p1.getName()) << p1.getName() << Color::RESET 
+                 << Color::GREEN << " HP: " << p1.getHP() << Color::RESET
+                 << Color::BLUE << " Mana: " << p1.getMana() << Color::RESET << "\n";
+            cout << "P2: " << getCharacterColor(p2.getName()) << p2.getName() << Color::RESET 
+                 << Color::GREEN << " HP: " << p2.getHP() << Color::RESET 
+                 << Color::BLUE << " Mana: " << p2.getMana() << Color::RESET << "\n\n";
 
             if (!handleLowHP(p1, 1, GameMode::PVP, true)) {
                 w2++;
                 break;
             }
 
-            cout << "--- PLAYER 1 TURN ---\n";
+            cout << Color::BOLD_CYAN << "--- PLAYER 1 TURN (" << p1.getName() << ") ---\n" << Color::RESET;
             int i1 = chooseSkill(p1);
             const Skill& s1 = p1.getSkills()[i1];
 
             const Skill* use1 = &s1;
             if (!s1.isOneHitDelete && p1.getMana() < s1.manaCost) {
-                cout << "Not enough mana! Using basic attack.\n";
+                cout << Color::RED << "Not enough mana! Using basic attack.\n" << Color::RESET;
                 use1 = &BASIC_ATTACK;
             } else p1.useMana(s1.manaCost);
 
@@ -706,13 +771,13 @@ void Game::playPVP() {
                 break;
             }
 
-            cout << "--- PLAYER 2 TURN ---\n";
+            cout << Color::BOLD_MAGENTA << "--- PLAYER 2 TURN (" << p2.getName() << ") ---\n" << Color::RESET;
             int i2 = chooseSkill(p2);
             const Skill& s2 = p2.getSkills()[i2];
 
             const Skill* use2 = &s2;
             if (!s2.isOneHitDelete && p2.getMana() < s2.manaCost) {
-                cout << "Not enough mana! Using basic attack.\n";
+                cout << Color::RED << "Not enough mana! Using basic attack.\n" << Color::RESET;
                 use2 = &BASIC_ATTACK;
             } else p2.useMana(s2.manaCost);
 
@@ -721,41 +786,45 @@ void Game::playPVP() {
         }
 
         if (p1.isAlive() && !p2.isAlive()) {
-            cout << "Player 1 wins round " << round << "!\n\n";
+            cout << Color::BOLD_GREEN << "Player 1 (" << p1.getName() << ") wins round " << round << "!\n\n" << Color::RESET;
             w1++;
         }
         else if (p2.isAlive() && !p1.isAlive()) {
-            cout << "Player 2 wins round " << round << "!\n";
+            cout << Color::BOLD_GREEN << "Player 2 (" << p2.getName() << ") wins round " << round << "!\n\n" << Color::RESET;
             w2++;
         }
+        else if (!p1.isAlive() && !p2.isAlive()) {
+             cout << Color::YELLOW << "Double K.O. in round " << round << "!" << Color::RESET << "\n\n";
+        }
 
-        cout << "Score: " << p1.getName() << " = " << w1 << " | "
-             << p2.getName() << " = " << w2 << "\n\n";
-             
+
+        cout << Color::BOLD_WHITE << "Current Score: " 
+             << getCharacterColor(p1.getName()) << p1.getName() << Color::RESET << " = " << w1 << " | "
+             << getCharacterColor(p2.getName()) << p2.getName() << Color::RESET << " = " << w2 << "\n\n";
+                 
         if (round < 5 && w1 < winGoal && w2 < winGoal) {
-            cout << "Press Enter to continue...";
+            cout << Color::BRIGHT_WHITE << "Press Enter to continue..." << Color::RESET;
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
             cin.get();
             clearScreen();
         }
     }
 
-    cout << "================ MATCH RESULT ================\n\n";
+    cout << Color::BOLD_YELLOW << "================ MATCH RESULT ================" << Color::RESET << "\n\n";
     string winner;
     if (w1 > w2) {
-        cout << "Player 1 is the champion!\n";
+        cout << Color::BOLD_GREEN << "Player 1 (" << p1.getName() << ") is the champion!" << Color::RESET << "\n";
         winner = p1.getName();
     }
     else if (w2 > w1) {
-        cout << "Player 2 is the champion!\n";
+        cout << Color::BOLD_GREEN << "Player 2 (" << p2.getName() << ") is the champion!" << Color::RESET << "\n";
         winner = p2.getName();
     }
     else {
-        cout << "The battle ends in a draw.\n";
+        cout << Color::BOLD_WHITE << "The battle ends in a draw." << Color::RESET << "\n";
         winner = "Draw";
     }
 
-    // Stop battle music and play winner sound (no loop) if there is a champion
     PlaySound(NULL, 0, 0);
     if (winner != "Draw") {
         PlaySound(TEXT("winner.wav"), NULL, SND_FILENAME | SND_ASYNC);
@@ -778,7 +847,7 @@ void Game::playPVP() {
 
     saveMatchHistory();
 
-    cout << "\nPress Enter...";
+    cout << Color::BRIGHT_WHITE << "\nPress Enter..." << Color::RESET;
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
     cin.get();
     clearScreen();
@@ -790,15 +859,13 @@ void Game::playPVP() {
 
 void Game::playPVC() {
     clearScreen();
-    cout << "============= PLAYER VS COMPUTER =============\n\n";
+    cout << Color::BOLD_YELLOW << "============= PLAYER VS COMPUTER =============\n\n" << Color::RESET;
 
-    // Player chooses character
+    
     Character p = chooseCharacter(1, false, -1);
 
-    // Check if player pressed Back
-    if (p.getHP() == -1) return;  // return to main menu
+    if (p.getHP() == -1) return;  
 
-    // Find the player's character index to forbid bot from choosing it
     int forbiddenIndex = -1;
     for (size_t i = 0; i < roster.size(); i++) {
         if (roster[i].getName() == p.getName()) {
@@ -807,7 +874,6 @@ void Game::playPVC() {
         }
     }
 
-    // Pick bot character avoiding the player's character
     int aiIndex;
     do {
         aiIndex = getRandomInt(0, (int)roster.size() - 1);
@@ -817,12 +883,11 @@ void Game::playPVC() {
     int pw = 0, cw = 0;
     const int winGoal = 3;
 
-    cout << "Computer chosen: " << bot.getName() << " " << bot.getTitle() << "\n";
-    cout << "Press Enter to start the battle...";
+    cout << Color::BOLD_WHITE << "Computer chosen: " << getCharacterColor(bot.getName()) << bot.getName() << Color::YELLOW << " " << bot.getTitle() << Color::RESET << "\n";
+    cout << Color::BRIGHT_WHITE << "Press Enter to start the battle..." << Color::RESET;
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
     cin.get();
 
-    // MUSIC: battle music starts when the fight actually begins
     PlaySound(TEXT("battle.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
 
     for (int r = 1; r <= 5 && pw < winGoal && cw < winGoal; r++) {
@@ -830,30 +895,37 @@ void Game::playPVC() {
         p.resetForNewRound();
         bot.resetForNewRound();
 
-        bot.setMaxHP(200);
-        bot.setHP(200);
+        
+        bot.setMaxHP(p.getMaxHP() + 50); 
+        bot.setHP(p.getMaxHP() + 50);
 
         clearScreen();
-        cout << "================= ROUND " << r << " =================\n\n";
+        cout << Color::BOLD_WHITE << "================= ROUND " << r << " =================\n\n" << Color::RESET;
 
         while (p.isAlive() && bot.isAlive()) {
 
-            cout << "STATUS:\n";
-            cout << "You: " << p.getName() << " HP: " << p.getHP() << " Mana: " << p.getMana() << "\n";
-            cout << "Bot: " << bot.getName() << " HP: " << bot.getHP() << " Mana: " << bot.getMana() << "\n\n";
+            cout << Color::BOLD_WHITE << "STATUS:" << Color::RESET << "\n";
+            cout << "You: " << getCharacterColor(p.getName()) << p.getName() << Color::RESET 
+                 << Color::GREEN << " HP: " << p.getHP() << Color::RESET 
+                 << Color::BLUE << " Mana: " << p.getMana() << Color::RESET << "\n";
+            cout << "Bot: " << getCharacterColor(bot.getName()) << bot.getName() << Color::RESET 
+                 << Color::GREEN << " HP: " << bot.getHP() << Color::RESET 
+                 << Color::BLUE << " Mana: " << bot.getMana() << Color::RESET << "\n\n";
 
             if (!handleLowHP(p, 1, GameMode::PVC, true)) {
                 cw++;
                 break;
             }
 
-            cout << "--- YOUR TURN ---\n";
+            cout << Color::BOLD_CYAN << "--- YOUR TURN (" << p.getName() << ") ---\n" << Color::RESET;
             int psi = chooseSkill(p);
             const Skill& ps = p.getSkills()[psi];
 
             const Skill* useP = &ps;
-            if (!ps.isOneHitDelete && p.getMana() < ps.manaCost)
+            if (!ps.isOneHitDelete && p.getMana() < ps.manaCost) {
+                cout << Color::RED << "Not enough mana! Using basic attack.\n" << Color::RESET;
                 useP = &BASIC_ATTACK;
+            }
             else
                 p.useMana(ps.manaCost);
 
@@ -862,9 +934,8 @@ void Game::playPVC() {
 
             if (!bot.isAlive()) break;
 
-            cout << "--- BOT TURN ---\n";
+            cout << Color::BOLD_MAGENTA << "--- BOT TURN (" << bot.getName() << ") ---\n" << Color::RESET;
 
-            // Bot chooses skill excluding 1-hit delete
             std::vector<int> availableSkills;
             for (size_t i = 0; i < bot.getSkills().size(); i++) {
                 if (!bot.getSkills()[i].isOneHitDelete)
@@ -875,44 +946,52 @@ void Game::playPVC() {
             const Skill& as = bot.getSkills()[aiS];
 
             const Skill* useA = &as;
-            if (bot.getMana() < as.manaCost)
+            if (bot.getMana() < as.manaCost) {
+                cout << Color::WHITE << bot.getName() << " uses Basic Attack!\n" << Color::RESET;
                 useA = &BASIC_ATTACK;
-            else
+            }
+            else {
+                cout << getCharacterColor(bot.getName()) << bot.getName() << " uses " << as.name << "!\n" << Color::RESET;
                 bot.useMana(as.manaCost);
+            }
 
             int admg = computeDamage(bot, p, *useA);
             p.takeDamage(admg);
         }
 
         if (p.isAlive() && !bot.isAlive()) {
-            cout << "You win round " << r << "!\n";
+            cout << Color::BOLD_GREEN << "You win round " << r << "!\n" << Color::RESET;
             pw++;
         } else if (bot.isAlive() && !p.isAlive()) {
-            cout << "Bot wins round " << r << "!\n";
+            cout << Color::BOLD_RED << "Bot wins round " << r << "!\n" << Color::RESET;
             cw++;
+        } else if (!p.isAlive() && !bot.isAlive()) {
+             cout << Color::YELLOW << "Double K.O. in round " << r << "!" << Color::RESET << "\n\n";
         }
 
-        cout << "Score: " << p.getName() << " = " << pw << " | "
-             << bot.getName() << " = " << cw << "\n\n";
+
+        cout << Color::BOLD_WHITE << "Current Score: You (" 
+             << getCharacterColor(p.getName()) << p.getName() << Color::RESET << ") = " << pw << " | Bot ("
+             << getCharacterColor(bot.getName()) << bot.getName() << Color::RESET << ") = " << cw << "\n\n";
 
         if (r < 5 && pw < winGoal && cw < winGoal) {
-            cout << "Press Enter...";
+            cout << Color::BRIGHT_WHITE << "Press Enter..." << Color::RESET;
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
             cin.get();
             clearScreen();
         }
     }
 
-    cout << "================ MATCH RESULT ================\n\n";
+    cout << Color::BOLD_YELLOW << "================ MATCH RESULT ================" << Color::RESET << "\n\n";
     string winner;
     if (pw > cw) {
-        cout << "You are the champion!\n";
+        cout << Color::BOLD_GREEN << "You are the champion!" << Color::RESET << "\n";
         winner = p.getName();
     } else if (cw > pw) {
-        cout << "The Computer wins!\n";
+        cout << Color::BOLD_RED << "The Computer wins!" << Color::RESET << "\n";
         winner = bot.getName();
     } else {
-        cout << "Match ends in a draw.\n";
+        cout << Color::BOLD_WHITE << "Match ends in a draw." << Color::RESET << "\n";
         winner = "Draw";
     }
 
@@ -941,7 +1020,7 @@ void Game::playPVC() {
 
     saveMatchHistory();
 
-    cout << "\nPress Enter...";
+    cout << Color::BRIGHT_WHITE << "\nPress Enter..." << Color::RESET;
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
     cin.get();
     clearScreen();
@@ -956,18 +1035,21 @@ void Game::showCredits() {
     clearScreen();
 
     string credits[] = {
-        "================ CREDITS ================",
-        "Game Design     : Dave Laurence R. Repe",
-        "Programming     : Arnold Michael P. Tabada\n\t\t: Nirhevn Kyle Dialimas\n\t\t: John Timothy Cabuguas\n\t\t: Dave Laurence R. Repe\n",
-        "Artwork         : John Timothy Cabuguas",
-        "Story & Lore    : John Timothy Cabuguas",
-        "Special Thanks  : Rolando Supremo",
-        "========================================",
+        Color::BOLD_YELLOW + "================ CREDITS ================" + Color::RESET,
+        Color::BOLD_WHITE + "Game Design      : Dave Laurence R. Repe" + Color::RESET,
+        Color::BOLD_WHITE + "Programming      : Arnold Michael P. Tabada" + Color::RESET + "\n" +
+        Color::BOLD_WHITE + "               : Nirhevn Kyle Dialimas" + Color::RESET + "\n" +
+        Color::BOLD_WHITE + "               : John Timothy Cabuguas" + Color::RESET + "\n" +
+        Color::BOLD_WHITE + "               : Dave Laurence R. Repe" + Color::RESET + "\n",
+        Color::BOLD_WHITE + "Artwork          : John Timothy Cabuguas" + Color::RESET,
+        Color::BOLD_WHITE + "Story & Lore     : John Timothy Cabuguas" + Color::RESET,
+        Color::BOLD_RED + "Special Thanks   : Rolando Supremo" + Color::RESET,
+        Color::BOLD_YELLOW + "========================================" + Color::RESET,
         "",
-        "Thank you for playing Galactica Campus Brawl!",
-        "Hope you enjoyed your adventure!",
+        Color::BOLD_GREEN + "Thank you for playing Galactica Campus Brawl!" + Color::RESET,
+        Color::BOLD_GREEN + "Hope you enjoyed your adventure!" + Color::RESET,
         "",
-        "Press Enter to go back..."
+        Color::BRIGHT_WHITE + "Press Enter to go back..." + Color::RESET
     };
 
     int total = sizeof(credits) / sizeof(credits[0]);
@@ -987,7 +1069,6 @@ void Game::showCredits() {
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
     cin.get();
 
-    // STOP credits music when exiting credits screen
     PlaySound(NULL, 0, 0);
 
     clearScreen();
