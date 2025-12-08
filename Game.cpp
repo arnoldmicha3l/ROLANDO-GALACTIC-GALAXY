@@ -231,8 +231,8 @@ bool Game::confirmExit() {
 
 void Game::mainMenu() {
       unordered_map<int, function<void()>> menuActions = {
-        {1, [this]{ PlaySound(TEXT("battle.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP); playPVP(); }},
-        {2, [this]{ PlaySound(TEXT("battle.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP); playPVC(); }},
+        {1, [this]{  playPVP(); }},
+        {2, [this]{  playPVC(); }},
         {3, [this]{ viewAllCharacters(); }},
         {4, [this]{ PlaySound(TEXT("intro.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP); showCredits(); }},
         {5, [this]{  PlaySound(TEXT("characterselection.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP); viewMatchHistory(); }},
@@ -240,6 +240,7 @@ void Game::mainMenu() {
     };
 
     while (true) {
+        clearScreen();
         PlaySound(TEXT("characterselection.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
         cout << "================ MAIN MENU ================\n";
         cout << " 1. Player vs Player\n";
@@ -404,7 +405,7 @@ void Game::displayCharacterDetails(int i) {
         if (s[z].isOneHitDelete)
             cout << "    Damage: ONE-HIT DELETE.\n\n";
         else
-            cout << "    Est. Damage: " << min << "–" << max << "\n\n";
+            cout << "    Est. Damage: " << min << "--" << max << "\n\n";
     }
 
     cout << "Press Enter...";
@@ -512,15 +513,16 @@ int Game::computeDamage(Character& atk, Character& def, const Skill& s) {
 
 bool Game::handleLowHP(Character& c, int num, GameMode m, bool human) {
     (void)m; // not used for now
-
     if (!human) return true;
 
+    PlaySound(TEXT("surrender.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
     if (c.getHP() <= 15 && c.getHP() > 0) {
         cout << "Player " << num << " only has " << c.getHP() << " HP left.\n";
         cout << "Continue or surrender?\n";
         cout << "1. Continue\n";
         cout << "2. Surrender\n";
 
+        cout<<"\nSelect a number: ";
         int choice;
         if (!(cin >> choice)) {
             cin.clear();
@@ -529,10 +531,11 @@ bool Game::handleLowHP(Character& c, int num, GameMode m, bool human) {
         }
 
         if (choice == 2) {
-            cout << "Player " << num << " surrendered!\n";
+            cout << "\nPlayer " << num << " surrendered!\n";
             return false;
         }
     }
+    PlaySound(NULL, 0, 0);
 
     return true;
 }
@@ -545,7 +548,7 @@ Character Game::chooseCharacter(int playerNumber, bool showGrudges, int forbidde
     while (true) {
         clearScreen();
         cout << "===== PLAYER " << playerNumber << " -- CHOOSE YOUR CHARACTER =====\n\n";
-
+        PlaySound(TEXT("characterselection.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
         for (size_t i = 0; i < roster.size(); i++) {
             if ((int)i == forbiddenIndex)
                 cout << i + 1 << ". " << roster[i].getName() << " (UNAVAILABLE)\n";
@@ -563,7 +566,7 @@ Character Game::chooseCharacter(int playerNumber, bool showGrudges, int forbidde
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
             continue;
         }
-
+ 
         // Back option (fallback)
         if (choice == (int)roster.size() + 1)
             return roster[0];
@@ -607,6 +610,7 @@ Character Game::chooseCharacter(int playerNumber, bool showGrudges, int forbidde
 void Game::playPVP() {
     clearScreen();
     cout << "=============== PLAYER VS PLAYER ===============\n\n";
+    PlaySound(TEXT("characterselection.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
 
     Character p1 = chooseCharacter(1, true, -1);
 
@@ -687,7 +691,7 @@ void Game::playPVP() {
 
         cout << "Score: " << p1.getName() << " = " << w1 << " | "
              << p2.getName() << " = " << w2 << "\n\n";
-             
+
         if (round < 5 && w1 < winGoal && w2 < winGoal) {
             cout << "Press Enter to continue...";
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
@@ -747,6 +751,7 @@ void Game::playPVP() {
 void Game::playPVC() {
     clearScreen();
     cout << "============= PLAYER VS COMPUTER =============\n\n";
+    PlaySound(TEXT("characterselection.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
 
     Character p = chooseCharacter(1, false, -1);
 
